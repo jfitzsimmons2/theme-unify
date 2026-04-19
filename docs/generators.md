@@ -37,7 +37,9 @@ Output file (default `primevue-preset.ts`) exports a single
 What it does:
 
 - Maps `semantic.colors.<role>.scale` → a full color object (`50`–`950`)
-  for each PrimeVue color role.
+  for each PrimeVue color role. The scale name may be a key in
+  `primitive.colors` or a [builtin palette](token-schema.md#builtin-palettes)
+  (`purple`, `sky`, `indigo`, …).
 - Builds the `surface` palette via `buildSurfaceObject`, optionally
   inverted in dark mode.
 - Auto-generates `primary`/`highlight`/`formField` defaults.
@@ -85,8 +87,12 @@ Exports: `generateUnoCSS`.
 Output file (default `unocss-theme.ts`) exports five named consts (all
 `as const`):
 
-- `colors` — every primitive color scale, plus the surface palette derived
-  from `semantic.surface`, plus aliases from `unocss.colorAliases`.
+- `colors` — every primitive color scale, plus any [builtin
+  palettes](token-schema.md#builtin-palettes) referenced via
+  `semantic.colors` or `semantic.surface`, plus the surface palette
+  derived from `semantic.surface`, plus aliases from
+  `unocss.colorAliases`. Builtins that aren't referenced are omitted to
+  keep the generated bundle lean.
 - `borderRadius`, `boxShadow`, `fontFamily`, `fontWeight` — flat copies of
   the corresponding `primitive` sections.
 

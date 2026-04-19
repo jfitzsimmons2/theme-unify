@@ -179,8 +179,12 @@ describe("buildPrimeVuePTObject", () => {
         // so the PT must NOT pin a competing utility class.
         expect(pt.card.root as string).not.toContain("bg-");
         expect(pt.card.root as string).not.toContain("text-oatmeal");
-        // Title still uses the surface scale for typography colour
-        expect(pt.card.title as string).toContain("oatmeal");
+        // Title/subtitle must also avoid pinning a surface text colour — they
+        // inherit `color` from the card root, which the preset drives.
+        expect(pt.card.title as string).not.toContain("oatmeal");
+        expect(pt.card.title as string).not.toContain("chickpea");
+        expect(pt.card.subtitle as string).not.toContain("oatmeal");
+        expect(pt.card.subtitle as string).not.toContain("chickpea");
     });
 
     it("severity color mapping is correct for all roles", () => {

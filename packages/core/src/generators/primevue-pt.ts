@@ -4,6 +4,11 @@ import type {
     ColorScale,
 } from "../types.js";
 import { fileHeader } from "./utils.js";
+import {
+    BUILTIN_PALETTES,
+    isBuiltinPalette,
+    resolveScale,
+} from "../builtin-palettes.js";
 
 // ---------------------------------------------------------------------------
 // Internal types
@@ -23,9 +28,13 @@ interface PTSeverityClassMap {
 interface PTSurfaceClassMap {
     pageBg: string;
     surfaceBg: string;
+    surfaceBgHover: string;
     elevatedBg: string;
+    elevatedBgHover: string;
     cardBg: string;
+    cardBgHover: string;
     text: string;
+    textHover: string;
     textMuted: string;
     border: string;
     inputBg: string;
@@ -62,8 +71,7 @@ function getSemanticColorScale(
 
     // Direct match
     if (sem.colors[role]) {
-        const scaleName = sem.colors[role].scale;
-        return resolved.primitive.colors[scaleName];
+        return resolveScale(sem.colors[role].scale, resolved.primitive);
     }
 
     // Try aliases
@@ -72,8 +80,7 @@ function getSemanticColorScale(
             // Look for any matching role in semantic.colors
             for (const alias of [canonical, ...aliases]) {
                 if (sem.colors[alias]) {
-                    const scaleName = sem.colors[alias].scale;
-                    return resolved.primitive.colors[scaleName];
+                    return resolveScale(sem.colors[alias].scale, resolved.primitive);
                 }
             }
         }
@@ -87,7 +94,7 @@ function getSurfaceScale(
 ): ColorScale | undefined {
     const surfaceScaleName = resolved.semantic?.surface?.scale;
     if (!surfaceScaleName) return undefined;
-    return resolved.primitive.colors[surfaceScaleName];
+    return resolveScale(surfaceScaleName, resolved.primitive);
 }
 
 function getPrimaryScale(
@@ -106,6 +113,10 @@ function resolveScaleName(
 ): string | undefined {
     const val500 = scale[500];
     for (const [name, s] of Object.entries(resolved.primitive.colors)) {
+        if (s[500] === val500) return name;
+    }
+    // Fall back to builtin palette names
+    for (const [name, s] of Object.entries(BUILTIN_PALETTES)) {
         if (s[500] === val500) return name;
     }
     return undefined;
@@ -166,16 +177,73 @@ function buildSurfaceClassMapResolved(
         ? resolveScaleName(primaryScale, resolved)
         : undefined;
 
-    // Light mode defaults
-    const pageBg = lightName ? `bg-${lightName}-50` : "bg-white";
-    const surfaceBg = lightName ? `bg-${lightName}-100` : "bg-gray-100";
-    const elevatedBg = lightName ? `bg-${lightName}-200` : "bg-gray-200";
-    const cardBg = lightName ? `bg-${lightName}-50` : "bg-white";
-    const text = lightName ? `text-${lightName}-950` : "text-gray-900";
-    const textMuted = lightName ? `text-${lightName}-600` : "text-gray-500";
-    const border = lightName ? `border-${lightName}-200` : "border-gray-200";
-    const inputBg = lightName ? `bg-${lightName}-50` : "bg-white";
-    const inputBorder = lightName ? `border-${lightName}-300` : "border-gray-300";
+    // Resolve dark-mode surface scale (falls back to the light scale if
+    // `semantic.surface.darkScale` is not configured or unknown).
+    const darkScaleName = resolved.semantic?.surface?.darkScale;
+    const darkName =
+        darkScaleName &&
+            (resolved.primitive.colors[darkScaleName] ||
+                isBuiltinPalette(darkScaleName))
+            ? darkScaleName
+            : lightName;
+
+    const pair = (lightCls: string, darkCls: string) =>
+        `${lightCls} dark:${darkCls}`;
+
+    // Helper: apply a modifier prefix (e.g. `hover:`) to every class in a
+    // light/`dark:` paired string so the dark variant also picks up the
+    // modifier. `"bg-foo dark:bg-bar"` + `hover:` becomes
+    // `"hover:bg-foo dark:hover:bg-bar"`.
+    const withModifier = (modifier: string, paired: string) =>
+        paired
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((cls) =>
+                cls.startsWith("dark:")
+                    ? `dark:${modifier}${cls.slice("dark:".length)}`
+                    : `${modifier}${cls}`,
+            )
+            .join(" ");
+
+    // Emit paired light + `dark:` classes so components remain readable in
+    // both colour schemes. UnoCSS scans the generated PT file, so the dark
+    // variants get included in the produced stylesheet automatically.
+    const pageBg =
+        lightName && darkName
+            ? pair(`bg-${lightName}-50`, `bg-${darkName}-950`)
+            : "bg-white dark:bg-gray-900";
+    const surfaceBg =
+        lightName && darkName
+            ? pair(`bg-${lightName}-100`, `bg-${darkName}-900`)
+            : "bg-gray-100 dark:bg-gray-800";
+    const elevatedBg =
+        lightName && darkName
+            ? pair(`bg-${lightName}-200`, `bg-${darkName}-800`)
+            : "bg-gray-200 dark:bg-gray-700";
+    const cardBg =
+        lightName && darkName
+            ? pair(`bg-${lightName}-50`, `bg-${darkName}-900`)
+            : "bg-white dark:bg-gray-900";
+    const text =
+        lightName && darkName
+            ? pair(`text-${lightName}-950`, `text-${darkName}-50`)
+            : "text-gray-900 dark:text-gray-100";
+    const textMuted =
+        lightName && darkName
+            ? pair(`text-${lightName}-600`, `text-${darkName}-400`)
+            : "text-gray-500 dark:text-gray-400";
+    const border =
+        lightName && darkName
+            ? pair(`border-${lightName}-200`, `border-${darkName}-700`)
+            : "border-gray-200 dark:border-gray-700";
+    const inputBg =
+        lightName && darkName
+            ? pair(`bg-${lightName}-50`, `bg-${darkName}-900`)
+            : "bg-white dark:bg-gray-900";
+    const inputBorder =
+        lightName && darkName
+            ? pair(`border-${lightName}-300`, `border-${darkName}-700`)
+            : "border-gray-300 dark:border-gray-700";
     const inputBorderHover = primaryName
         ? `border-${primaryName}-400`
         : inputBorder;
@@ -186,9 +254,13 @@ function buildSurfaceClassMapResolved(
     return {
         pageBg,
         surfaceBg,
+        surfaceBgHover: withModifier("hover:", surfaceBg),
         elevatedBg,
+        elevatedBgHover: withModifier("hover:", elevatedBg),
         cardBg,
+        cardBgHover: withModifier("hover:", cardBg),
         text,
+        textHover: withModifier("hover:", text),
         textMuted,
         border,
         inputBg,
@@ -248,17 +320,18 @@ function buildButtonPT(
     };
 }
 
-function buildCardPT(surf: PTSurfaceClassMap): object {
+function buildCardPT(_surf: PTSurfaceClassMap): object {
     return {
         // Background + text colour are intentionally omitted so the PrimeVue
-        // preset's `card.colorScheme.*.root.{background,color}` tokens drive the
-        // colour. This keeps cards on `surface.0` (white in light, near-black in
-        // dark) without a competing utility class.
+        // preset's `card.colorScheme.*.root.{background,color}` tokens drive
+        // the colour. Title/subtitle inherit `color` from the card root, so we
+        // do not add `text-*` utility classes here either — adding them would
+        // override the preset colour and break dark mode.
         root: `rounded-lg shadow overflow-hidden`,
         header: `overflow-hidden`,
         body: `p-5 flex flex-col gap-3`,
-        title: `text-lg font-semibold ${surf.text}`,
-        subtitle: `text-sm ${surf.textMuted}`,
+        title: `text-lg font-semibold`,
+        subtitle: `text-sm opacity-70`,
         content: ``,
         footer: `pt-3 mt-auto`,
     };
@@ -297,7 +370,7 @@ function buildSelectPT(
         overlay: `absolute z-50 ${surf.cardBg} ${surf.border} border rounded-lg shadow-lg py-1 mt-1 min-w-full`,
         list: "py-1",
         option: ({ context }: { context: Record<string, unknown> }) =>
-            `px-3 py-2 text-sm cursor-pointer ${context.selected ? `${primary.bgSubtle} ${primary.textSubtle} font-medium` : `${surf.text} hover:${surf.surfaceBg}`}`,
+            `px-3 py-2 text-sm cursor-pointer ${context.selected ? `${primary.bgSubtle} ${primary.textSubtle} font-medium` : `${surf.text} ${surf.surfaceBgHover}`}`,
         clearIcon: `ml-1 shrink-0 ${surf.textMuted}`,
     };
 }
@@ -311,15 +384,15 @@ function buildDataTablePT(
         table: `w-full border-collapse text-sm`,
         header: `px-4 py-3 ${surf.surfaceBg} ${surf.border} border-b`,
         headerRow: ``,
-        headerCell: `px-4 py-3 text-left font-semibold ${surf.textMuted} ${surf.border} border-b cursor-pointer select-none hover:${surf.cardBg} transition-colors`,
+        headerCell: `px-4 py-3 text-left font-semibold ${surf.textMuted} ${surf.border} border-b cursor-pointer select-none ${surf.cardBgHover} transition-colors`,
         bodyRow: ({ context }: { context: Record<string, unknown> }) =>
-            `${context.striped ? surf.surfaceBg : surf.cardBg} hover:${surf.elevatedBg} transition-colors`,
+            `${context.striped ? surf.surfaceBg : surf.cardBg} ${surf.elevatedBgHover} transition-colors`,
         bodyCell: `px-4 py-3 ${surf.border} border-b`,
         paginator: {
             root: `flex items-center justify-between px-4 py-2 ${surf.surfaceBg} ${surf.border} border-t`,
             pages: `flex items-center gap-1`,
             page: ({ context }: { context: Record<string, unknown> }) =>
-                `w-8 h-8 flex items-center justify-center rounded text-sm cursor-pointer ${context.active ? `${primary.bg} ${primary.text}` : `hover:${surf.elevatedBg}`}`,
+                `w-8 h-8 flex items-center justify-center rounded text-sm cursor-pointer ${context.active ? `${primary.bg} ${primary.text}` : surf.elevatedBgHover}`,
         },
     };
 }
@@ -333,7 +406,7 @@ function buildDialogPT(surf: PTSurfaceClassMap): object {
         content: `px-6 py-4 overflow-y-auto flex-1`,
         footer: `flex items-center justify-end gap-3 px-6 py-4 ${surf.border} border-t`,
         pcCloseButton: {
-            root: `ml-auto -mr-2 p-1 rounded hover:${surf.surfaceBg} transition-colors ${surf.textMuted}`,
+            root: `ml-auto -mr-2 p-1 rounded ${surf.surfaceBgHover} transition-colors ${surf.textMuted}`,
         },
     };
 }
@@ -346,7 +419,7 @@ function buildDrawerPT(surf: PTSurfaceClassMap): object {
         title: `text-lg font-semibold`,
         content: `px-6 py-4 overflow-y-auto flex-1`,
         pcCloseButton: {
-            root: `ml-auto -mr-2 p-1 rounded hover:${surf.surfaceBg} transition-colors ${surf.textMuted}`,
+            root: `ml-auto -mr-2 p-1 rounded ${surf.surfaceBgHover} transition-colors ${surf.textMuted}`,
         },
     };
 }
@@ -450,7 +523,7 @@ function buildPanelPT(surf: PTSurfaceClassMap): object {
         title: `font-semibold ${surf.text}`,
         content: `px-4 py-4 ${surf.cardBg} ${surf.text}`,
         pcToggleButton: {
-            root: `p-1 rounded hover:${surf.elevatedBg} transition-colors ${surf.textMuted}`,
+            root: `p-1 rounded ${surf.elevatedBgHover} transition-colors ${surf.textMuted}`,
         },
     };
 }
@@ -469,7 +542,7 @@ function buildAccordionPanelPT(): object {
 
 function buildAccordionHeaderPT(surf: PTSurfaceClassMap): object {
     return {
-        root: `w-full flex items-center justify-between px-4 py-3 ${surf.surfaceBg} hover:${surf.elevatedBg} cursor-pointer transition-colors font-medium ${surf.text}`,
+        root: `w-full flex items-center justify-between px-4 py-3 ${surf.surfaceBg} ${surf.elevatedBgHover} cursor-pointer transition-colors font-medium ${surf.text}`,
         toggleIcon: `shrink-0 ml-2 transition-transform`,
     };
 }
@@ -500,7 +573,7 @@ function buildTabPT(
         root: ({ context }: { context: Record<string, unknown> }) =>
             `px-4 py-2.5 text-sm font-medium cursor-pointer border-b-2 -mb-px transition-colors whitespace-nowrap ${context.active
                 ? `${primary.textSubtle} border-current`
-                : `${surf.textMuted} border-transparent hover:${surf.text}`
+                : `${surf.textMuted} border-transparent ${surf.textHover}`
             }`,
     };
 }
@@ -523,7 +596,7 @@ function buildMenuPT(surf: PTSurfaceClassMap): object {
         list: ``,
         item: ``,
         itemContent: ``,
-        itemLink: `flex items-center gap-2 px-3 py-2 text-sm ${surf.text} hover:${surf.surfaceBg} transition-colors cursor-pointer`,
+        itemLink: `flex items-center gap-2 px-3 py-2 text-sm ${surf.text} ${surf.surfaceBgHover} transition-colors cursor-pointer`,
         itemIcon: `shrink-0 ${surf.textMuted}`,
         itemLabel: ``,
         separator: `my-1 ${surf.border} border-t`,
@@ -536,7 +609,7 @@ function buildMenubarPT(surf: PTSurfaceClassMap): object {
         rootList: `flex items-center gap-1`,
         item: ``,
         itemContent: ``,
-        itemLink: `flex items-center gap-1.5 px-3 py-1.5 text-sm rounded ${surf.text} hover:${surf.elevatedBg} transition-colors cursor-pointer`,
+        itemLink: `flex items-center gap-1.5 px-3 py-1.5 text-sm rounded ${surf.text} ${surf.elevatedBgHover} transition-colors cursor-pointer`,
         submenu: `absolute z-50 ${surf.cardBg} ${surf.border} border rounded-lg shadow-lg py-1 min-w-40`,
     };
 }
@@ -546,7 +619,7 @@ function buildBreadcrumbPT(surf: PTSurfaceClassMap): object {
         root: `flex items-center`,
         list: `flex items-center gap-1 flex-wrap`,
         item: ``,
-        itemLink: `text-sm ${surf.textMuted} hover:${surf.text} transition-colors`,
+        itemLink: `text-sm ${surf.textMuted} ${surf.textHover} transition-colors`,
         separator: `mx-1 ${surf.textMuted}`,
     };
 }
@@ -758,13 +831,13 @@ function buildPTCodeObject(
       \`inline-flex items-center w-full px-3 py-2 text-sm rounded ${surf.inputBg} ${surf.text} ${surf.inputBorder} border outline-none cursor-pointer transition-colors duration-150 hover:${surf.inputBorderHover} \${props.focused ? '${surf.inputBorderFocus} ring-2 ring-offset-1' : ''} \${props.disabled ? 'opacity-50 cursor-not-allowed' : ''}\`.trim()`;
 
     const selectOptionFn = `({ context }) =>
-      \`px-3 py-2 text-sm cursor-pointer \${context.selected ? ${q(`${primary.bgSubtle} ${primary.textSubtle} font-medium`)} : ${q(`${surf.text} hover:${surf.surfaceBg}`)}}\``;
+      \`px-3 py-2 text-sm cursor-pointer \${context.selected ? ${q(`${primary.bgSubtle} ${primary.textSubtle} font-medium`)} : ${q(`${surf.text} ${surf.surfaceBgHover}`)}}\``;
 
     const dtBodyRowFn = `({ context }) =>
-      \`\${context.striped ? ${q(surf.surfaceBg)} : ${q(surf.cardBg)}} hover:${surf.elevatedBg} transition-colors\``;
+      \`\${context.striped ? ${q(surf.surfaceBg)} : ${q(surf.cardBg)}} ${surf.elevatedBgHover} transition-colors\``;
 
     const dtPageFn = `({ context }) =>
-      \`w-8 h-8 flex items-center justify-center rounded text-sm cursor-pointer \${context.active ? ${q(`${primary.bg} ${primary.text}`)} : \`hover:${surf.elevatedBg}\`}\``;
+      \`w-8 h-8 flex items-center justify-center rounded text-sm cursor-pointer \${context.active ? ${q(`${primary.bg} ${primary.text}`)} : ${q(surf.elevatedBgHover)}}\``;
 
     // Message root with severity map inline
     const msgRootFn = `({ props }) => {
@@ -812,7 +885,7 @@ function buildPTCodeObject(
     }`;
 
     const tabRootFn = `({ context }) =>
-      \`px-4 py-2.5 text-sm font-medium cursor-pointer border-b-2 -mb-px transition-colors whitespace-nowrap \${context.active ? ${q(`${primary.textSubtle} border-current`)} : ${q(`${surf.textMuted} border-transparent hover:${surf.text}`)}}\``;
+      \`px-4 py-2.5 text-sm font-medium cursor-pointer border-b-2 -mb-px transition-colors whitespace-nowrap \${context.active ? ${q(`${primary.textSubtle} border-current`)} : ${q(`${surf.textMuted} border-transparent ${surf.textHover}`)}}\``;
 
     const checkboxBoxFn = `({ props }) =>
       \`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors \${props.modelValue ? ${q(`${primary.bg} ${primary.border}`)} : ${q(`${surf.inputBg} ${surf.inputBorder} hover:${surf.inputBorderHover}`)}} \${props.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}\``;
@@ -839,13 +912,14 @@ function buildPTCodeObject(
         card: {
             // Background + text colour are intentionally omitted so the PrimeVue
             // preset's `card.colorScheme.*.root.{background,color}` tokens drive
-            // the colour. Cards sit on `surface.0` (white in light, near-black
-            // in dark) without a competing utility class.
+            // the colour. Title/subtitle inherit `color` from the card root, so
+            // we do not add `text-*` utility classes here either — adding them
+            // would override the preset colour and break dark mode.
             root: `rounded-lg shadow overflow-hidden`,
             header: "overflow-hidden",
             body: "p-5 flex flex-col gap-3",
-            title: `text-lg font-semibold ${surf.text}`,
-            subtitle: `text-sm ${surf.textMuted}`,
+            title: "text-lg font-semibold",
+            subtitle: "text-sm opacity-70",
             content: "",
             footer: "pt-3 mt-auto",
         },
@@ -867,7 +941,7 @@ function buildPTCodeObject(
             table: "w-full border-collapse text-sm",
             header: `px-4 py-3 ${surf.surfaceBg} ${surf.border} border-b`,
             headerRow: "",
-            headerCell: `px-4 py-3 text-left font-semibold ${surf.textMuted} ${surf.border} border-b cursor-pointer select-none hover:${surf.cardBg} transition-colors`,
+            headerCell: `px-4 py-3 text-left font-semibold ${surf.textMuted} ${surf.border} border-b cursor-pointer select-none ${surf.cardBgHover} transition-colors`,
             bodyRow: { __fn: dtBodyRowFn },
             bodyCell: `px-4 py-3 ${surf.border} border-b`,
             paginator: {
@@ -884,7 +958,7 @@ function buildPTCodeObject(
             content: "px-6 py-4 overflow-y-auto flex-1",
             footer: `flex items-center justify-end gap-3 px-6 py-4 ${surf.border} border-t`,
             pcCloseButton: {
-                root: `ml-auto -mr-2 p-1 rounded hover:${surf.surfaceBg} transition-colors ${surf.textMuted}`,
+                root: `ml-auto -mr-2 p-1 rounded ${surf.surfaceBgHover} transition-colors ${surf.textMuted}`,
             },
         },
         drawer: {
@@ -894,7 +968,7 @@ function buildPTCodeObject(
             title: "text-lg font-semibold",
             content: "px-6 py-4 overflow-y-auto flex-1",
             pcCloseButton: {
-                root: `ml-auto -mr-2 p-1 rounded hover:${surf.surfaceBg} transition-colors ${surf.textMuted}`,
+                root: `ml-auto -mr-2 p-1 rounded ${surf.surfaceBgHover} transition-colors ${surf.textMuted}`,
             },
         },
         message: {
@@ -928,13 +1002,13 @@ function buildPTCodeObject(
             title: `font-semibold ${surf.text}`,
             content: `px-4 py-4 ${surf.cardBg} ${surf.text}`,
             pcToggleButton: {
-                root: `p-1 rounded hover:${surf.elevatedBg} transition-colors ${surf.textMuted}`,
+                root: `p-1 rounded ${surf.elevatedBgHover} transition-colors ${surf.textMuted}`,
             },
         },
         accordion: { root: `rounded-lg ${surf.border} border overflow-hidden` },
         accordionpanel: { root: "border-b last:border-b-0" },
         accordionheader: {
-            root: `w-full flex items-center justify-between px-4 py-3 ${surf.surfaceBg} hover:${surf.elevatedBg} cursor-pointer transition-colors font-medium ${surf.text}`,
+            root: `w-full flex items-center justify-between px-4 py-3 ${surf.surfaceBg} ${surf.elevatedBgHover} cursor-pointer transition-colors font-medium ${surf.text}`,
             toggleIcon: "shrink-0 ml-2 transition-transform",
         },
         accordioncontent: { root: `px-4 py-4 ${surf.cardBg} ${surf.text}` },
@@ -948,7 +1022,7 @@ function buildPTCodeObject(
             list: "",
             item: "",
             itemContent: "",
-            itemLink: `flex items-center gap-2 px-3 py-2 text-sm ${surf.text} hover:${surf.surfaceBg} transition-colors cursor-pointer`,
+            itemLink: `flex items-center gap-2 px-3 py-2 text-sm ${surf.text} ${surf.surfaceBgHover} transition-colors cursor-pointer`,
             itemIcon: `shrink-0 ${surf.textMuted}`,
             itemLabel: "",
             separator: `my-1 ${surf.border} border-t`,
@@ -958,14 +1032,14 @@ function buildPTCodeObject(
             rootList: "flex items-center gap-1",
             item: "",
             itemContent: "",
-            itemLink: `flex items-center gap-1.5 px-3 py-1.5 text-sm rounded ${surf.text} hover:${surf.elevatedBg} transition-colors cursor-pointer`,
+            itemLink: `flex items-center gap-1.5 px-3 py-1.5 text-sm rounded ${surf.text} ${surf.elevatedBgHover} transition-colors cursor-pointer`,
             submenu: `absolute z-50 ${surf.cardBg} ${surf.border} border rounded-lg shadow-lg py-1 min-w-40`,
         },
         breadcrumb: {
             root: "flex items-center",
             list: "flex items-center gap-1 flex-wrap",
             item: "",
-            itemLink: `text-sm ${surf.textMuted} hover:${surf.text} transition-colors`,
+            itemLink: `text-sm ${surf.textMuted} ${surf.textHover} transition-colors`,
             separator: `mx-1 ${surf.textMuted}`,
         },
         avatar: {

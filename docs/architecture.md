@@ -43,6 +43,7 @@ All paths are under [packages/core/src](../packages/core/src).
 | [validator.ts](../packages/core/src/validator.ts) | Schema/value/ref validation; throws `TokenValidationError` |
 | [resolver.ts](../packages/core/src/resolver.ts) | Replace `{ ref: "…" }` with primitives, with cycle detection |
 | [types.ts](../packages/core/src/types.ts) | All public + internal token types |
+| [builtin-palettes.ts](../packages/core/src/builtin-palettes.ts) | 22 Tailwind/PrimeUix color scales + `resolveScale` lookup with builtin fallback |
 | [errors.ts](../packages/core/src/errors.ts) | `CircularReferenceError`, `UnresolvedRefError`, `TokenValidationError` |
 | [write-output.ts](../packages/core/src/write-output.ts) | Idempotent file writer (skip if unchanged) |
 | [cli.ts](../packages/core/src/cli.ts) | `cac`-based CLI entry; bin: `theme-unify` |
@@ -58,11 +59,13 @@ public API and follows the stability rules in
 
 - Functions: `defineTokens`, `loadTokens`, `resolveRefs`, `validateTokens`,
   `generatePrimeVue`, `buildPrimeVuePreset`, `generatePrimeVuePT`,
-  `buildPrimeVuePTObject`, `generateUnoCSS`, `generateShortcuts`
+  `buildPrimeVuePTObject`, `generateUnoCSS`, `generateShortcuts`,
+  `isBuiltinPalette`, `resolveScale`
 - Types: `TokenSchema`, `AutoTokenSchema`, `ResolvedTokens`,
   `ResolvedAutoTokens`, the various config sub-types, plus the PT class
-  maps
-- Constants: `COLOR_STEPS`, `PRIMEVUE_BASE_THEMES`, `isRef`
+  maps, plus `BuiltinPaletteName`
+- Constants: `COLOR_STEPS`, `PRIMEVUE_BASE_THEMES`, `BUILTIN_PALETTES`,
+  `BUILTIN_PALETTE_NAMES`, `isRef`
 
 ## Build output
 

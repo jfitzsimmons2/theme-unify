@@ -17,7 +17,7 @@ usage lives in the root [README](../README.md).
 | --- | --- |
 | [getting-started.md](getting-started.md) | Prerequisites, install, common scripts, troubleshooting |
 | [architecture.md](architecture.md) | Monorepo layout, modules, public API surface |
-| [token-schema.md](token-schema.md) | `TokenSchema`, `AutoTokenSchema`, refs, color scales |
+| [token-schema.md](token-schema.md) | `TokenSchema`, `AutoTokenSchema`, refs, color scales, builtin palettes |
 | [pipeline.md](pipeline.md) | `loadTokens` → `validateTokens` → `resolveRefs` → generators |
 | [generators.md](generators.md) | PrimeVue preset, PrimeVue PT, UnoCSS theme, UnoCSS shortcuts |
 | [adding-a-generator.md](adding-a-generator.md) | Step-by-step for a new output format |

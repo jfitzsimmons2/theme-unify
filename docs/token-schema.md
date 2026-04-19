@@ -68,12 +68,14 @@ Raw values — no refs allowed inside primitive itself.
 The "design intent" layer. Refs into `primitive` are typical here.
 
 - `colors: Record<string, { scale: string }>` — names a color role
-  (`primary`, `secondary`, …) and points it at a primitive color name.
+  (`primary`, `secondary`, …) and points it at a primitive color name
+  **or a builtin palette name** (see [Builtin palettes](#builtin-palettes)).
 - `backgrounds: Record<string, { ref: string }>` — named background tokens
   (e.g. `pageLight`, `pageDark`).
 - `surface: { scale, darkScale?, invertInDarkMode? }` — special: drives the
-  generated 0–950 surface palette. `invertInDarkMode` reverses the scale in
-  dark mode (Aura convention). See `buildSurfaceObject` in
+  generated 0–950 surface palette. `scale` and `darkScale` may also name a
+  builtin palette. `invertInDarkMode` reverses the scale in dark mode
+  (Aura convention). See `buildSurfaceObject` in
   [packages/core/src/generators/utils.ts](../packages/core/src/generators/utils.ts).
 
 ### `primevue`
@@ -121,6 +123,71 @@ type ColorScale = Record<ColorStep, string>;
 
 The validator enforces that every color scale has all 11 steps. Surface
 generation also relies on this completeness.
+
+## Builtin palettes
+
+Source:
+[packages/core/src/builtin-palettes.ts](../packages/core/src/builtin-palettes.ts).
+
+theme-unify ships 22 ready-made color scales whose hex values match the
+Tailwind v3 / PrimeUix Aura palettes verbatim. Any
+`semantic.colors.<role>.scale`, `semantic.surface.scale`, or
+`semantic.surface.darkScale` may name a builtin instead of a key from
+`primitive.colors`:
+
+```ts
+semantic: {
+  colors: {
+    primary: { scale: "purple" },   // builtin
+    success: { scale: "emerald" },  // builtin
+    accent:  { scale: "carrot" },   // user-defined in primitive.colors
+  },
+  surface: { scale: "slate", darkScale: "zinc" }, // both builtin
+}
+```
+
+Refs into builtins also work via the existing `colors.<name>.<step>`
+alias — e.g. `{ ref: "colors.purple.500" }` resolves to `#a855f7`
+regardless of whether `purple` exists in `primitive.colors`.
+
+Available names (`BUILTIN_PALETTE_NAMES`):
+
+`emerald`, `green`, `lime`, `red`, `orange`, `amber`, `yellow`, `teal`,
+`cyan`, `sky`, `blue`, `indigo`, `violet`, `purple`, `fuchsia`, `pink`,
+`rose`, `slate`, `gray`, `zinc`, `neutral`, `stone`.
+
+### Resolution rules
+
+- **User-defined wins.** If `primitive.colors.<name>` exists, it shadows
+  the builtin of the same name; `resolveScale` emits a one-time
+  `console.warn` on collision so the override is intentional.
+- **Validation.** The validator rejects any scale name that is neither in
+  `primitive.colors` nor a builtin, with an error message that lists the
+  builtin names.
+- **UnoCSS emission is lean.** [unocss-theme.ts](generators.md#unocss-themets--unocss-theme)
+  only includes a builtin in the generated `colors` export when it is
+  actually referenced via `semantic`.
+- **PrimeVue parity.** Builtin hexes match PrimeUix Aura defaults so a
+  `primary: { scale: "purple" }` config renders identically to PrimeVue's
+  out-of-the-box purple theme.
+
+### Public API
+
+From [packages/core/src/index.ts](../packages/core/src/index.ts):
+
+- `BUILTIN_PALETTES: Record<BuiltinPaletteName, ColorScale>`
+- `BUILTIN_PALETTE_NAMES: readonly BuiltinPaletteName[]`
+- `isBuiltinPalette(name: string): name is BuiltinPaletteName`
+- `resolveScale(name, primitive): ColorScale | undefined` — user-defined
+  first, then builtin fallback
+- `type BuiltinPaletteName`
+
+### Editor autocomplete
+
+The playground's `defineTypedTokens` helper widens `scale` fields with
+`BuiltinPaletteName | (string & {})` so editors suggest builtin names
+alongside user-defined keys. See
+[packages/playground/tokens.types.ts](../packages/playground/tokens.types.ts).
 
 ## Resolved types
 

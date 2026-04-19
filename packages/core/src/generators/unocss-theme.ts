@@ -1,6 +1,33 @@
-import type { ResolvedTokens, ResolvedAutoTokens } from "../types.js";
+import type { ResolvedTokens, ResolvedAutoTokens, ColorScale } from "../types.js";
 import { COLOR_STEPS } from "../types.js";
 import { fileHeader, serializeValue, buildSurfaceObject } from "./utils.js";
+import { resolveScale, isBuiltinPalette } from "../builtin-palettes.js";
+
+/** Collect every scale name referenced via semantic (colors + surface). */
+function collectReferencedScales(
+    resolved: ResolvedTokens | ResolvedAutoTokens,
+): Set<string> {
+    const names = new Set<string>();
+    const sem = resolved.semantic;
+    if (sem?.colors) {
+        for (const mapping of Object.values(sem.colors)) {
+            names.add(mapping.scale);
+        }
+    }
+    if (sem?.surface) {
+        names.add(sem.surface.scale);
+        if (sem.surface.darkScale) names.add(sem.surface.darkScale);
+    }
+    return names;
+}
+
+function scaleToObject(scale: ColorScale): Record<string, string> {
+    const obj: Record<string, string> = {};
+    for (const step of COLOR_STEPS) {
+        if (scale[step]) obj[String(step)] = scale[step];
+    }
+    return obj;
+}
 
 export function generateUnoCSS(
     resolved: ResolvedTokens | ResolvedAutoTokens,
@@ -10,19 +37,23 @@ export function generateUnoCSS(
     // Colors: all primitive color scales
     const colors: Record<string, Record<string, string>> = {};
     for (const [name, scale] of Object.entries(resolved.primitive.colors)) {
-        const scaleObj: Record<string, string> = {};
-        for (const step of COLOR_STEPS) {
-            if (scale[step]) {
-                scaleObj[String(step)] = scale[step];
-            }
-        }
-        colors[name] = scaleObj;
+        colors[name] = scaleToObject(scale);
+    }
+
+    // Emit referenced builtin palettes that aren't shadowed by user definitions
+    for (const name of collectReferencedScales(resolved)) {
+        if (colors[name]) continue;
+        if (!isBuiltinPalette(name)) continue;
+        const scale = resolveScale(name, resolved.primitive);
+        if (scale) colors[name] = scaleToObject(scale);
     }
 
     // Surface: derive from semantic.surface using the shared buildSurfaceObject
     if (resolved.semantic?.surface) {
-        const surfaceScaleName = resolved.semantic.surface.scale;
-        const surfaceScale = resolved.primitive.colors[surfaceScaleName];
+        const surfaceScale = resolveScale(
+            resolved.semantic.surface.scale,
+            resolved.primitive,
+        );
         if (surfaceScale) {
             colors["surface"] = buildSurfaceObject(surfaceScale, false, "light");
         }
@@ -31,11 +62,11 @@ export function generateUnoCSS(
     // Dark surface: derive from semantic.surface.darkScale or inverted
     if (resolved.semantic?.surface) {
         const { scale, darkScale, invertInDarkMode } = resolved.semantic.surface;
-        const lightScale = resolved.primitive.colors[scale];
+        const lightScale = resolveScale(scale, resolved.primitive);
         if (lightScale) {
             let darkSurface: Record<string, string>;
             if (darkScale) {
-                const dk = resolved.primitive.colors[darkScale];
+                const dk = resolveScale(darkScale, resolved.primitive);
                 darkSurface = dk
                     ? buildSurfaceObject(dk, false, "dark")
                     : buildSurfaceObject(lightScale, invertInDarkMode ?? false, "dark");

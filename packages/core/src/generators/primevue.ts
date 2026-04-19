@@ -6,6 +6,7 @@ import type {
 } from "../types.js";
 import { COLOR_STEPS } from "../types.js";
 import { fileHeader, serializeValue, buildSurfaceObject } from "./utils.js";
+import { resolveScale } from "../builtin-palettes.js";
 
 const BASE_THEME_IMPORTS: Record<string, string> = {
     aura: "@primeuix/themes/aura",
@@ -92,7 +93,7 @@ function buildAutoPreset(
     // Map semantic color roles → full 50-950 scales
     if (sem.colors) {
         for (const [role, mapping] of Object.entries(sem.colors)) {
-            const scale = prim.colors[mapping.scale];
+            const scale = resolveScale(mapping.scale, prim);
             if (scale) {
                 semantic[role] = scaleToObject(scale);
             }
@@ -104,13 +105,13 @@ function buildAutoPreset(
 
     // --- Surface 0-950 for light and dark ---
     if (sem.surface) {
-        const lightScale = prim.colors[sem.surface.scale];
+        const lightScale = resolveScale(sem.surface.scale, prim);
         if (lightScale) {
             const lightSurface = buildSurfaceObject(lightScale, false, "light");
 
             let darkSurface: Record<string, string>;
             if (sem.surface.darkScale) {
-                const darkScale = prim.colors[sem.surface.darkScale];
+                const darkScale = resolveScale(sem.surface.darkScale, prim);
                 darkSurface = darkScale
                     ? buildSurfaceObject(darkScale, false, "dark")
                     : buildSurfaceObject(
@@ -133,11 +134,11 @@ function buildAutoPreset(
 
     // --- Auto-derive primary/highlight/formField from semantic roles ---
     const primaryScale = sem.colors?.primary
-        ? prim.colors[sem.colors.primary.scale]
+        ? resolveScale(sem.colors.primary.scale, prim)
         : undefined;
     const surfaceScaleName = sem.surface?.scale;
     const surfaceScale = surfaceScaleName
-        ? prim.colors[surfaceScaleName]
+        ? resolveScale(surfaceScaleName, prim)
         : undefined;
 
     if (primaryScale) {
@@ -255,9 +256,9 @@ function resolveBackgroundRef(
     prim: PrimitiveConfig,
 ): string | undefined {
     const parts = mapping.ref.split(".");
-    // Handle aliases: colors.X.Y → primitive.colors.X.Y
+    // Handle aliases: colors.X.Y → primitive.colors.X.Y (with builtin fallback)
     if (parts[0] === "colors" && parts.length === 3) {
-        const scale = prim.colors[parts[1]];
+        const scale = resolveScale(parts[1], prim);
         return scale ? scale[Number(parts[2]) as keyof ColorScale] : undefined;
     }
     return undefined;
@@ -274,8 +275,7 @@ function buildLegacyPreset(resolved: ResolvedTokens): Record<string, unknown> {
     // Map semantic color scales (primary, secondary, accent, info)
     if (resolved.semantic?.colors) {
         for (const [role, mapping] of Object.entries(resolved.semantic.colors)) {
-            const scaleName = mapping.scale;
-            const scale = resolved.primitive.colors[scaleName];
+            const scale = resolveScale(mapping.scale, resolved.primitive);
             if (scale) {
                 semantic[role] = scaleToObject(scale);
             }
@@ -298,14 +298,16 @@ function buildLegacyPreset(resolved: ResolvedTokens): Record<string, unknown> {
     // Surface mapping
     if (resolved.semantic?.surface) {
         const surfaceScaleName = resolved.semantic.surface.scale;
-        const surfaceScale = resolved.primitive.colors[surfaceScaleName];
+        const surfaceScale = resolveScale(surfaceScaleName, resolved.primitive);
         if (surfaceScale) {
             const lightSurface = buildSurfaceObject(surfaceScale, false, "light");
 
             let darkSurface: Record<string, string>;
             if (resolved.semantic.surface.darkScale) {
-                const darkScale =
-                    resolved.primitive.colors[resolved.semantic.surface.darkScale];
+                const darkScale = resolveScale(
+                    resolved.semantic.surface.darkScale,
+                    resolved.primitive,
+                );
                 darkSurface = darkScale
                     ? buildSurfaceObject(darkScale, false, "dark")
                     : buildSurfaceObject(

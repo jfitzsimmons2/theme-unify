@@ -552,7 +552,7 @@ const showEditor = ref(true)
         <!-- Sticky Header -->
         <header class="sticky top-0 z-50 bg-surface border-b border-default px-6 py-3">
             <div class="flex items-center justify-between mb-3">
-                <h1 class="text-2xl font-bold flex items-center gap-2">
+                <h1 class="text-2xl font-bold flex items-center gap-2 dark:text-surface-50 text-surface-700">
                     <i class="i-prime-palette text-xl" />
                     theme-unify Playground
                 </h1>
