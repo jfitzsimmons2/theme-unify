@@ -1,0 +1,12 @@
+{
+  "name": "@theme-unify/root",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "dev": "pnpm --filter @theme-unify/playground dev",
+    "generate": "pnpm --filter @theme-unify/playground generate"
+  }
+}

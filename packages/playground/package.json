@@ -1,0 +1,35 @@
+{
+  "name": "@theme-unify/playground",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "generate": "theme-unify -c ./tokens.config.ts -o ./src/generated --pt primevue-pt.ts"
+  },
+  "dependencies": {
+    "@primeuix/themes": "^2.0.3",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
+    "primevue": "^4.5.4",
+    "vue": "^3.5.30"
+  },
+  "devDependencies": {
+    "@guolao/vue-monaco-editor": "^1.6.0",
+    "@iconify-json/prime": "^1.2.4",
+    "@types/file-saver": "^2.0.7",
+    "@types/node": "^24.12.0",
+    "@unocss/preset-icons": "^66.6.7",
+    "@vitejs/plugin-vue": "^6.0.5",
+    "@vue/tsconfig": "^0.9.0",
+    "monaco-editor": "^0.55.1",
+    "sucrase": "^3.35.1",
+    "theme-unify": "workspace:*",
+    "typescript": "~5.9.3",
+    "unocss": "^66.6.7",
+    "vite": "^8.0.1",
+    "vue-tsc": "^3.2.5"
+  }
+}
