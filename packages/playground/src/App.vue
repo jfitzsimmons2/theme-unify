@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import TokenEditor from './components/TokenEditor.vue'
-import { useTokenEditor } from './composables/useTokenEditor'
 
 // --- Form Components ---
 import AutoComplete from 'primevue/autocomplete'
@@ -526,20 +524,6 @@ function showConfirmPopup(event: Event) {
 
 // --- BlockUI ---
 const blockUIActive = ref(false)
-
-// --- Token Editor ---
-const {
-    editorContent,
-    parseError,
-    validationErrors,
-    isProcessing,
-    processTokens,
-    downloadConfig,
-    downloadAllGenerated,
-    resetToDefault,
-} = useTokenEditor()
-
-const showEditor = ref(true)
 </script>
 
 <template>
@@ -558,9 +542,6 @@ const showEditor = ref(true)
                 </h1>
                 <div class="flex items-center gap-3">
                     <Tag value="PrimeVue 4" severity="info" />
-                    <Button :icon="showEditor ? 'i-prime-eye-slash' : 'i-prime-pencil'"
-                        :label="showEditor ? 'Hide Editor' : 'Edit Tokens'" @click="showEditor = !showEditor"
-                        severity="secondary" size="small" />
                     <Button :icon="isDark ? 'i-prime-sun' : 'i-prime-moon'" :label="isDark ? 'Light' : 'Dark'"
                         @click="toggleDark" severity="secondary" size="small" />
                 </div>
@@ -570,13 +551,6 @@ const showEditor = ref(true)
         </header>
 
         <div class="flex" :style="{ height: 'calc(100vh - 110px)' }">
-            <!-- Editor Panel -->
-            <div v-if="showEditor" class="w-[480px] flex-shrink-0 border-r border-default">
-                <TokenEditor v-model="editorContent" :parse-error="parseError" :validation-errors="validationErrors"
-                    :is-processing="isProcessing" @apply="processTokens(editorContent)"
-                    @download-config="downloadConfig()" @download-all="downloadAllGenerated()"
-                    @reset="resetToDefault()" />
-            </div>
 
             <!-- Showcase Panel -->
             <main class="flex-1 overflow-y-auto p-6">

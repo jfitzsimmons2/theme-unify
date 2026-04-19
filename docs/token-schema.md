@@ -60,8 +60,18 @@ Raw values — no refs allowed inside primitive itself.
 - `colors: Record<string, ColorScale>` — each scale must have all 11 steps:
   `50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950` (see
   `COLOR_STEPS`).
-- `spacing`, `radii`, `shadows`, `typography`, `fontWeight` — flat string
-  maps (typography is structured, see `TypographyTokens`).
+- `spacing`, `radii`, `shadows`, `fontWeight` — flat string maps.
+- `typography: TypographyTokens` — structured:
+  - `fontFamily?: string` → emitted as UnoCSS `fontFamily.sans` and as a
+    `font-family` declaration in the PrimeVue base CSS.
+  - `baseFontSize?: string` → emitted as UnoCSS `fontSize.base` (paired with
+    `baseLineHeight` as a tuple when both are set) and as a `font-size`
+    declaration in the PrimeVue base CSS preflight.
+  - `baseLineHeight?: string` → emitted as UnoCSS `lineHeight.base` and as a
+    `line-height` declaration in the PrimeVue base CSS preflight.
+
+  Both frameworks share these typography baselines so PrimeVue components and
+  UnoCSS utilities (`text-base`, `leading-base`) stay aligned.
 
 ### `semantic`
 

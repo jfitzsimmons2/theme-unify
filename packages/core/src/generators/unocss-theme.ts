@@ -118,6 +118,27 @@ export function generateUnoCSS(
         sections.push("");
     }
 
+    // Font size + line height (paired) from typography base
+    const typo = resolved.primitive.typography;
+    if (typo?.baseFontSize || typo?.baseLineHeight) {
+        const size = typo?.baseFontSize ?? "1rem";
+        const lh = typo?.baseLineHeight;
+        const fontSize: Record<string, string | [string, string]> = {
+            base: lh ? [size, lh] : size,
+        };
+        sections.push(
+            `export const fontSize = ${serializeValue(fontSize, 0)} as const;`,
+        );
+        sections.push("");
+
+        if (lh) {
+            sections.push(
+                `export const lineHeight = ${serializeValue({ base: lh }, 0)} as const;`,
+            );
+            sections.push("");
+        }
+    }
+
     // Font weight
     if (resolved.primitive.fontWeight) {
         sections.push(

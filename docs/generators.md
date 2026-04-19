@@ -28,7 +28,8 @@ Shared helpers — `fileHeader()`, `serializeValue()`, `serializeObject()`,
 
 ## `primevue.ts` — styled-mode preset
 
-Exports: `generatePrimeVue`, `buildPrimeVuePreset`.
+Exports: `generatePrimeVue`, `buildPrimeVuePreset`,
+`generatePrimeVueBaseCss`.
 
 Output file (default `primevue-preset.ts`) exports a single
 `GeneratedPreset` produced by
@@ -48,6 +49,27 @@ What it does:
 
 Consumed by the playground's
 [main.ts](../packages/playground/src/main.ts) as `theme.preset`.
+
+### `primevue-base.css` — typography preflight
+
+`generatePrimeVueBaseCss(resolved)` returns a small CSS string (or `null`
+when no base typography is configured) of the form:
+
+```css
+:root {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  font-family: '...';
+}
+```
+
+The CLI writes this to `primevue-base.css` next to `primevue-preset.ts`
+whenever `primitive.typography.baseFontSize` or `baseLineHeight` is set.
+PrimeVue's semantic schema has no top-level `fontSize` / `lineHeight`, so
+this preflight is the canonical way to keep PrimeVue components inheriting
+the same typography baseline as the UnoCSS `text-base` / `leading-base`
+utilities. Import it once from your app entry (see
+[main.ts](../packages/playground/src/main.ts)).
 
 ## `primevue-pt.ts` — unstyled-mode passthrough
 
@@ -95,6 +117,12 @@ Output file (default `unocss-theme.ts`) exports five named consts (all
   keep the generated bundle lean.
 - `borderRadius`, `boxShadow`, `fontFamily`, `fontWeight` — flat copies of
   the corresponding `primitive` sections.
+- `fontSize` — emitted only when `primitive.typography.baseFontSize` (and
+  optionally `baseLineHeight`) is set. The `base` key is a string when only
+  `baseFontSize` is set or a `[fontSize, lineHeight]` tuple (UnoCSS pair
+  form) when both are set, so `text-base` covers both.
+- `lineHeight` — emitted only when `primitive.typography.baseLineHeight` is
+  set, with a single `base` entry that mirrors the value.
 
 These plug directly into UnoCSS's `theme` config.
 

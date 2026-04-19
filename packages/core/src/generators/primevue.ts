@@ -43,6 +43,26 @@ export function generatePrimeVue(
     return lines.join("\n");
 }
 
+/**
+ * Generate a CSS preflight that mirrors the typography base values into the
+ * document root. PrimeVue components inherit from `:root`, keeping their
+ * font sizing aligned with UnoCSS `text-base` / `leading-base` utilities.
+ *
+ * Returns `null` when neither `baseFontSize` nor `baseLineHeight` is set,
+ * so callers can skip writing an empty file.
+ */
+export function generatePrimeVueBaseCss(
+    resolved: ResolvedTokens | ResolvedAutoTokens,
+): string | null {
+    const t = resolved.primitive.typography;
+    if (!t?.baseFontSize && !t?.baseLineHeight) return null;
+    const decls: string[] = [];
+    if (t?.baseFontSize) decls.push(`  font-size: ${t.baseFontSize};`);
+    if (t?.baseLineHeight) decls.push(`  line-height: ${t.baseLineHeight};`);
+    if (t?.fontFamily) decls.push(`  font-family: ${t.fontFamily};`);
+    return `${fileHeader("/*", "*/")}\n:root {\n${decls.join("\n")}\n}\n`;
+}
+
 function getBase(resolved: ResolvedTokens | ResolvedAutoTokens): string {
     if (isAutoTokens(resolved)) {
         return resolved.primevue?.base ?? "aura";

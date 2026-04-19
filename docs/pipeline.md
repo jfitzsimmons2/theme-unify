@@ -63,14 +63,22 @@ Each generator is a pure `(resolved) => string` function plus an optional
 runtime builder `(resolved) => object`. See
 [generators.md](generators.md).
 
-The CLI calls all four in sequence:
+The CLI calls all generators in sequence:
 
 ```ts
 const primevueCode = generatePrimeVue(resolved);
 const unoCSSCode   = generateUnoCSS(resolved);
 const shortcutsCode = generateShortcuts(resolved);
 const ptCode       = generatePrimeVuePT(resolved);
+const baseCssCode  = generatePrimeVueBaseCss(resolved); // null when no
+                                                         // typography base
 ```
+
+The PrimeVue generator emits two artifacts: the preset object
+(`primevue-preset.ts`) and an optional CSS preflight
+(`primevue-base.css`) carrying `font-size` / `line-height` / `font-family`
+declarations. The CSS file is only written when at least one of
+`primitive.typography.baseFontSize` / `baseLineHeight` is set.
 
 ## 5. `writeOutput(outDir, filename, content)`
 

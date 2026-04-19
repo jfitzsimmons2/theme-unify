@@ -17,7 +17,8 @@ default command — there are no subcommands. The published binary is
 | `--unocss <filename>` | `unocss-theme.ts` | UnoCSS theme exports |
 | `--shortcuts <filename>` | `unocss-shortcuts.ts` | UnoCSS shortcuts |
 | `--pt <filename>` | `primevue-pt.ts` | PrimeVue passthrough preset |
-| `--dry-run` | off | Print all four outputs to stdout, do not write |
+| `--primevue-base-css <filename>` | `primevue-base.css` | PrimeVue typography preflight CSS (only written when `primitive.typography.baseFontSize` or `baseLineHeight` is set) |
+| `--dry-run` | off | Print all outputs to stdout, do not write |
 | `--validate` | off | Run `loadTokens` (which validates) and exit 0 |
 | `-w, --watch` | off | **Not implemented** — prints a warning |
 | `-h, --help` | — | Built-in `cac` help |
@@ -29,7 +30,9 @@ default command — there are no subcommands. The published binary is
 2. `loadTokens(configPath)` — also validates.
 3. If `--validate`, print `✓ Token config is valid.` and exit 0.
 4. `resolveRefs(tokens)`.
-5. Run all four generators.
+5. Run all generators (`generatePrimeVue`, `generateUnoCSS`,
+   `generateShortcuts`, `generatePrimeVuePT`,
+   `generatePrimeVueBaseCss`).
 6. If `--dry-run`, print `// === <filename> ===` headers followed by code
    to stdout; otherwise call `writeOutput` for each.
 7. Print one line per file: `✓ name` (written) or `· name (unchanged)`.

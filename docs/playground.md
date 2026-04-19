@@ -1,14 +1,10 @@
 # Playground
 
 The playground ([packages/playground](../packages/playground)) is a Vue 3
-app that serves two purposes:
-
-1. **Visual smoke test** for the generators — every PrimeVue component the
-   PT generator targets is rendered in
-   [src/App.vue](../packages/playground/src/App.vue), with a dark-mode
-   toggle and a UnoCSS palette viewer.
-2. **Runtime token editor** — edit the token config in-browser and see
-   PrimeVue + UnoCSS update live.
+app that serves as a **visual smoke test** for the generators — every
+PrimeVue component the PT generator targets is rendered in
+[src/App.vue](../packages/playground/src/App.vue), with a dark-mode
+toggle and a UnoCSS palette viewer.
 
 It depends on the `theme-unify` package via `workspace:*`.
 
@@ -57,18 +53,6 @@ content: {
 If a new generator emits classes into a new file, add that path here too.
 There's also a `safelist` constructed from the resolved color palette to
 guarantee `bg-/text-/border-/hover:/focus:` variants for all color steps.
-
-## Runtime token editing
-
-[useTokenEditor.ts](../packages/playground/src/composables/useTokenEditor.ts)
-hosts the in-browser editor logic. It re-runs the resolver + generators in
-the browser using `buildPrimeVuePreset` / `buildPrimeVuePTObject` (no disk
-IO), then injects new theme + PT into PrimeVue at runtime, plus rewrites
-UnoCSS shortcut CSS via a style tag.
-
-Per [UNSTYLED-PLAN.md](../UNSTYLED-PLAN.md), the long-term direction is
-PT-only via `usePrimeVue().config.pt = newPT`; styled mode is kept for
-backwards compatibility.
 
 ## Why a separate playground
 

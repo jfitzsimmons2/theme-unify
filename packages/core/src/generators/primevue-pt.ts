@@ -342,7 +342,7 @@ function buildInputTextPT(surf: PTSurfaceClassMap): object {
         root: ({ props }: { props: Record<string, unknown> }) => {
             const invalid = props.invalid as boolean | undefined;
             const disabled = props.disabled as boolean | undefined;
-            const base = `w-full px-3 py-2 text-sm rounded ${surf.inputBg} ${surf.text} ${surf.inputBorder} border outline-none transition-colors duration-150`;
+            const base = `w-full px-3 text-sm rounded ${surf.inputBg} ${surf.text} ${surf.inputBorder} border outline-none transition-colors duration-150`;
             const states = invalid
                 ? "border-red-500 focus:border-red-500"
                 : `hover:${surf.inputBorderHover} focus:${surf.inputBorderFocus} focus:ring-2 focus:ring-offset-1`;
@@ -364,13 +364,13 @@ function buildSelectPT(
 ): object {
     return {
         root: ({ props }: { props: Record<string, unknown> }) =>
-            `inline-flex items-center w-full px-3 py-2 text-sm rounded ${surf.inputBg} ${surf.text} ${surf.inputBorder} border outline-none cursor-pointer transition-colors duration-150 hover:${surf.inputBorderHover} ${props.focused ? `${surf.inputBorderFocus} ring-2 ring-offset-1` : ""} ${props.disabled ? "opacity-50 cursor-not-allowed" : ""}`.trim(),
-        label: "flex-1 min-w-0 truncate",
+            `inline-flex items-center w-full text-sm rounded ${surf.inputBg} ${surf.text} ${surf.inputBorder} border outline-none cursor-pointer transition-colors duration-150 hover:${surf.inputBorderHover} ${props.focused ? `${surf.inputBorderFocus} ring-2 ring-offset-1` : ""} ${props.disabled ? "opacity-50 cursor-not-allowed" : ""}`.trim(),
+        label: "flex-1 min-w-0 truncate p-0",
         dropdown: `ml-2 shrink-0 ${surf.textMuted}`,
         overlay: `absolute z-50 ${surf.cardBg} ${surf.border} border rounded-lg shadow-lg py-1 mt-1 min-w-full`,
         list: "py-1",
         option: ({ context }: { context: Record<string, unknown> }) =>
-            `px-3 py-2 text-sm cursor-pointer ${context.selected ? `${primary.bgSubtle} ${primary.textSubtle} font-medium` : `${surf.text} ${surf.surfaceBgHover}`}`,
+            `text-sm cursor-pointer ${context.selected ? `${primary.bgSubtle} ${primary.textSubtle} font-medium` : `${surf.text} ${surf.surfaceBgHover}`}`,
         clearIcon: `ml-1 shrink-0 ${surf.textMuted}`,
     };
 }
@@ -819,7 +819,7 @@ function buildPTCodeObject(
     }`;
 
     const inputRootFn = `({ props }) => {
-      const base = ${q(`w-full px-3 py-2 text-sm rounded ${surf.inputBg} ${surf.text} ${surf.inputBorder} border outline-none transition-colors duration-150`)};
+      const base = ${q(`w-full text-sm rounded ${surf.inputBg} ${surf.text} ${surf.inputBorder} border outline-none transition-colors duration-150`)};
       const states = props.invalid
         ? 'border-red-500 focus:border-red-500'
         : ${q(`hover:${surf.inputBorderHover} focus:${surf.inputBorderFocus} focus:ring-2 focus:ring-offset-1`)};
@@ -828,10 +828,10 @@ function buildPTCodeObject(
     }`;
 
     const selectRootFn = `({ props }) =>
-      \`inline-flex items-center w-full px-3 py-2 text-sm rounded ${surf.inputBg} ${surf.text} ${surf.inputBorder} border outline-none cursor-pointer transition-colors duration-150 hover:${surf.inputBorderHover} \${props.focused ? '${surf.inputBorderFocus} ring-2 ring-offset-1' : ''} \${props.disabled ? 'opacity-50 cursor-not-allowed' : ''}\`.trim()`;
+      \`inline-flex items-center w-full text-sm rounded ${surf.inputBg} ${surf.text} ${surf.inputBorder} border outline-none cursor-pointer transition-colors duration-150 hover:${surf.inputBorderHover} \${props.focused ? '${surf.inputBorderFocus} ring-2 ring-offset-1' : ''} \${props.disabled ? 'opacity-50 cursor-not-allowed' : ''}\`.trim()`;
 
     const selectOptionFn = `({ context }) =>
-      \`px-3 py-2 text-sm cursor-pointer \${context.selected ? ${q(`${primary.bgSubtle} ${primary.textSubtle} font-medium`)} : ${q(`${surf.text} ${surf.surfaceBgHover}`)}}\``;
+      \`text-sm cursor-pointer \${context.selected ? ${q(`${primary.bgSubtle} ${primary.textSubtle} font-medium`)} : ${q(`${surf.text} ${surf.surfaceBgHover}`)}}\``;
 
     const dtBodyRowFn = `({ context }) =>
       \`\${context.striped ? ${q(surf.surfaceBg)} : ${q(surf.cardBg)}} ${surf.elevatedBgHover} transition-colors\``;

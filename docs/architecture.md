@@ -22,11 +22,13 @@ flowchart LR
   D --> E2[generatePrimeVuePT]
   D --> E3[generateUnoCSS]
   D --> E4[generateShortcuts]
+  D --> E5[generatePrimeVueBaseCss]
   E1 --> F[writeOutput]
   E2 --> F
   E3 --> F
   E4 --> F
-  F --> G[src/generated/*.ts]
+  E5 --> F
+  F --> G[src/generated/*.ts + primevue-base.css]
 ```
 
 See [pipeline.md](pipeline.md) for the per-stage details.
@@ -58,7 +60,8 @@ public API and follows the stability rules in
 [contributing.md](contributing.md). Currently:
 
 - Functions: `defineTokens`, `loadTokens`, `resolveRefs`, `validateTokens`,
-  `generatePrimeVue`, `buildPrimeVuePreset`, `generatePrimeVuePT`,
+  `generatePrimeVue`, `buildPrimeVuePreset`, `generatePrimeVueBaseCss`,
+  `generatePrimeVuePT`,
   `buildPrimeVuePTObject`, `generateUnoCSS`, `generateShortcuts`,
   `isBuiltinPalette`, `resolveScale`
 - Types: `TokenSchema`, `AutoTokenSchema`, `ResolvedTokens`,

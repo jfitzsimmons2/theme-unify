@@ -5,6 +5,7 @@ export { resolveRefs } from "./resolver.js";
 export { validateTokens } from "./validator.js";
 export {
     generatePrimeVue,
+    generatePrimeVueBaseCss,
     buildPrimeVuePreset,
 } from "./generators/primevue.js";
 export { generateUnoCSS } from "./generators/unocss-theme.js";

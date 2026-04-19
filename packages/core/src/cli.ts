@@ -4,7 +4,10 @@ import { resolve } from "node:path";
 import { loadTokens } from "./load-tokens.js";
 import { resolveRefs } from "./resolver.js";
 
-import { generatePrimeVue } from "./generators/primevue.js";
+import {
+    generatePrimeVue,
+    generatePrimeVueBaseCss,
+} from "./generators/primevue.js";
 import { generateUnoCSS } from "./generators/unocss-theme.js";
 import { generateShortcuts } from "./generators/unocss-shortcuts.js";
 import { generatePrimeVuePT } from "./generators/primevue-pt.js";
@@ -34,6 +37,11 @@ cli
     .option("--pt <filename>", "PrimeVue PT (passthrough) output filename", {
         default: "primevue-pt.ts",
     })
+    .option(
+        "--primevue-base-css <filename>",
+        "PrimeVue base typography CSS output filename",
+        { default: "primevue-base.css" },
+    )
     .option("--dry-run", "Print output to stdout instead of writing files")
     .option("--validate", "Validate config and exit (no output)")
     .option(
@@ -66,6 +74,8 @@ cli
             const unoCSSCode = generateUnoCSS(resolved);
             const shortcutsCode = generateShortcuts(resolved);
             const ptCode = generatePrimeVuePT(resolved);
+            const baseCssCode = generatePrimeVueBaseCss(resolved);
+            const baseCssName = options.primevueBaseCss as string;
 
             if (dryRun) {
                 console.log(`\n// === ${options.primevue} ===\n`);
@@ -76,6 +86,10 @@ cli
                 console.log(shortcutsCode);
                 console.log(`\n// === ${options.pt} ===\n`);
                 console.log(ptCode);
+                if (baseCssCode) {
+                    console.log(`\n/* === ${baseCssName} === */\n`);
+                    console.log(baseCssCode);
+                }
                 return;
             }
 
@@ -112,6 +126,14 @@ cli
                     name: options.pt as string,
                     written: writeOutput(outDir, options.pt as string, ptCode, force),
                 },
+                ...(baseCssCode
+                    ? [
+                        {
+                            name: baseCssName,
+                            written: writeOutput(outDir, baseCssName, baseCssCode, force),
+                        },
+                    ]
+                    : []),
             ];
 
             for (const r of results) {

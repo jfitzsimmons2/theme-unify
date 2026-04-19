@@ -45,6 +45,16 @@ Key concerns to address:
    unchanged content; only trigger HMR when at least one file was rewritten.
 4. **Subpath consumers** — keep the existing `theme-unify/vite` export
    working; don't move the entry without a deprecation cycle.
+5. **Virtual modules** — alongside filesystem writes, the plugin is
+   expected to expose virtual module IDs so consumers can `import` the
+   generated artifacts without on-disk files. Reserved IDs:
+   - `virtual:theme-unify/primevue-preset` — the styled preset object.
+   - `virtual:theme-unify/primevue-base.css` — the typography preflight
+     CSS produced by `generatePrimeVueBaseCss` (see
+     [generators.md](generators.md#primevue-basecss--typography-preflight)).
+   - `virtual:theme-unify/unocss-theme` — the UnoCSS theme exports.
+   - `virtual:theme-unify/unocss-shortcuts` — the UnoCSS shortcuts map.
+   - `virtual:theme-unify/primevue-pt` — the PT classmap.
 
 A contributor picking this up should be able to do so without touching the
 existing CLI — both plugin and CLI should call the same internal pipeline
