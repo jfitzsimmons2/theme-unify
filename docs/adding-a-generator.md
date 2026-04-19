@@ -8,18 +8,18 @@ same pattern applies to any new format.
 `packages/core/src/generators/tailwind.ts`:
 
 ```ts
-import type { ResolvedTokens, ResolvedAutoTokens } from "../types.js";
+import type { ResolvedThemeUnifyConfig } from "../types.js";
 import { fileHeader, serializeObject } from "./utils.js";
 
 export function buildTailwindObject(
-  resolved: ResolvedTokens | ResolvedAutoTokens,
+  resolved: ResolvedThemeUnifyConfig,
 ): Record<string, unknown> {
   // Pure transform from resolved tokens → output object
   return { /* … */ };
 }
 
 export function generateTailwind(
-  resolved: ResolvedTokens | ResolvedAutoTokens,
+  resolved: ResolvedThemeUnifyConfig,
 ): string {
   const obj = buildTailwindObject(resolved);
   return (
@@ -31,12 +31,10 @@ export function generateTailwind(
 
 Use the existing generators as references:
 
-- Simplest: [unocss-shortcuts.ts](../packages/core/src/generators/unocss-shortcuts.ts)
-- Mid: [unocss-theme.ts](../packages/core/src/generators/unocss-theme.ts)
-- Complex (with deep-merge + base theme import):
-  [primevue.ts](../packages/core/src/generators/primevue.ts)
-- Complex (with class-string composition):
-  [primevue-pt.ts](../packages/core/src/generators/primevue-pt.ts)
+- Simplest: [shortcuts.ts](../packages/core/src/generators/shortcuts.ts)
+- Mid: [uno-theme.ts](../packages/core/src/generators/uno-theme.ts)
+- Complex (with `definePreset` import + deep-merge):
+  [preset.ts](../packages/core/src/generators/preset.ts)
 
 ## 2. Re-export from the public API
 
@@ -66,7 +64,7 @@ In [packages/core/src/cli.ts](../packages/core/src/cli.ts):
 
 Create `packages/core/tests/generators/tailwind.test.ts` mirroring an
 existing test such as
-[unocss-theme.test.ts](../packages/core/tests/generators/unocss-theme.test.ts).
+[uno-theme.test.ts](../packages/core/tests/generators/uno-theme.test.ts).
 Use the shared fixture:
 
 ```ts
@@ -85,8 +83,9 @@ describe("generateTailwind", () => {
 ```
 
 Prefer **structural assertions** (does it contain the expected keys with
-the expected resolved values?) over snapshot tests for output that
-contains color strings — snapshots break on every primitive change. See
+the expected resolved values?) over snapshot tests. Note that
+`serializeObject` emits unquoted keys for valid identifiers — match
+against `/name:\s*\{/` rather than `/'name':/`. See
 [testing.md](testing.md).
 
 ## 5. Update the playground (optional)
@@ -98,9 +97,6 @@ If you want the new output to be live:
 2. Import the generated file from somewhere in
    [packages/playground/src](../packages/playground/src) so it actually
    gets used.
-3. If the output contains UnoCSS class strings, add the file path to
-   `content.filesystem` in
-   [uno.config.ts](../packages/playground/uno.config.ts).
 
 ## 6. Document it
 

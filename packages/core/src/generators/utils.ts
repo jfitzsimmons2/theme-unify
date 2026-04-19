@@ -81,20 +81,22 @@ import { COLOR_STEPS } from "../types.js";
  * `invert` reverses indices 50–950 (dark-mode convention where the darker
  * tones live at the low end of the scale).
  *
- * `mode` controls only `surface[0]`: "light" → `#ffffff`, "dark" → `#0a0a0a`.
- * `surface[0]` is the brightest/darkest possible surface (Aura convention)
- * so it deliberately falls outside the supplied scale to pop against tinted
- * page backgrounds. Defaults to "light" when omitted.
+ * `surface[0]` is always `#ffffff` (Aura convention) — the brightest
+ * possible surface, used by components for elements that should pop
+ * against a dark background (switch handles, contrast text, etc.). The
+ * `mode` parameter is accepted for API symmetry but does not affect
+ * `surface[0]`.
  */
 export function buildSurfaceObject(
     scale: ColorScale,
     invert: boolean,
     mode: "light" | "dark" = "light",
 ): Record<string, string> {
+    void mode;
     const surface: Record<string, string> = {};
     const steps: ColorStep[] = [...COLOR_STEPS];
 
-    surface["0"] = mode === "dark" ? "#0a0a0a" : "#ffffff";
+    surface["0"] = "#ffffff";
 
     if (invert) {
         const reversed = [...steps].reverse();

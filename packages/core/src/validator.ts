@@ -1,5 +1,5 @@
 import type { ValidationIssue } from "./errors.js";
-import type { TokenSchema, AutoTokenSchema } from "./types.js";
+import type { ThemeUnifyConfig, SemanticScaleRef, ColorScale } from "./types.js";
 import { COLOR_STEPS, PRIMEVUE_BASE_THEMES, isRef } from "./types.js";
 import {
     BUILTIN_PALETTES,
@@ -10,9 +10,7 @@ import {
 const CSS_VALUE_RE =
     /^(-?\d+(\.\d+)?(px|rem|em|%|vh|vw|vmin|vmax|ch|ex|cm|mm|in|pt|pc|s|ms|deg|rad|turn)?|0|none|auto|inherit|initial|unset|#[\da-fA-F]{3,8}|rgba?\(.+\)|hsla?\(.+\)|'.+'|".+"|\d+(\.\d+)?)$/;
 
-export function validateTokens(
-    tokens: TokenSchema | AutoTokenSchema,
-): ValidationIssue[] {
+export function validateTokens(tokens: ThemeUnifyConfig): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
 
     // Validate color scales have valid steps
@@ -31,11 +29,11 @@ export function validateTokens(
     }
 
     // Validate PrimeVue base theme
-    if (tokens.primevue && "base" in tokens.primevue && tokens.primevue.base) {
-        if (!PRIMEVUE_BASE_THEMES.includes(tokens.primevue.base as never)) {
+    if (tokens.preset?.base) {
+        if (!PRIMEVUE_BASE_THEMES.includes(tokens.preset.base as never)) {
             issues.push({
-                path: "primevue.base",
-                message: `Unknown base theme "${tokens.primevue.base}". Expected: ${PRIMEVUE_BASE_THEMES.join(", ")}`,
+                path: "preset.base",
+                message: `Unknown base theme "${tokens.preset.base}". Expected: ${PRIMEVUE_BASE_THEMES.join(", ")}`,
             });
         }
     }
@@ -52,7 +50,6 @@ export function validateTokens(
         }
     }
 
-    // Validate radii values
     if (tokens.primitive.radii) {
         for (const [key, value] of Object.entries(tokens.primitive.radii)) {
             if (!CSS_VALUE_RE.test(value)) {
@@ -64,7 +61,6 @@ export function validateTokens(
         }
     }
 
-    // Validate shadows values (these are complex, allow anything with parens or numbers)
     if (tokens.primitive.shadows) {
         for (const [key, value] of Object.entries(tokens.primitive.shadows)) {
             if (typeof value !== "string" || value.trim().length === 0) {
@@ -76,36 +72,49 @@ export function validateTokens(
         }
     }
 
-    // Validate scale-name references against primitive.colors ∪ builtins.
+    // Validate scale references in semantic
     const scaleExists = (name: string): boolean =>
         Boolean(tokens.primitive.colors?.[name]) || isBuiltinPalette(name);
     const unknownScaleMessage = (name: string): string =>
         `Unknown color scale "${name}". Define it in primitive.colors or use a builtin palette (${BUILTIN_PALETTE_NAMES.join(", ")}).`;
 
-    if (tokens.semantic?.colors) {
-        for (const [role, mapping] of Object.entries(tokens.semantic.colors)) {
-            if (!scaleExists(mapping.scale)) {
+    const checkScaleRef = (ref: SemanticScaleRef, path: string): void => {
+        if (typeof ref === "string") {
+            if (!scaleExists(ref)) {
+                issues.push({ path, message: unknownScaleMessage(ref) });
+            }
+            return;
+        }
+        // Inline ColorScale
+        if (typeof ref !== "object" || ref === null) {
+            issues.push({ path, message: `Expected scale name or ColorScale at ${path}` });
+            return;
+        }
+        for (const step of COLOR_STEPS) {
+            if (typeof (ref as ColorScale)[step] !== "string") {
                 issues.push({
-                    path: `semantic.colors.${role}.scale`,
-                    message: unknownScaleMessage(mapping.scale),
+                    path: `${path}.${step}`,
+                    message: `Inline scale at ${path} is missing step "${step}"`,
                 });
             }
         }
-    }
+    };
 
+    if (tokens.semantic?.primary !== undefined) {
+        checkScaleRef(tokens.semantic.primary, "semantic.primary");
+    }
     if (tokens.semantic?.surface) {
-        const { scale, darkScale } = tokens.semantic.surface;
-        if (!scaleExists(scale)) {
-            issues.push({
-                path: "semantic.surface.scale",
-                message: unknownScaleMessage(scale),
-            });
+        checkScaleRef(tokens.semantic.surface.scale, "semantic.surface.scale");
+        if (tokens.semantic.surface.darkScale !== undefined) {
+            checkScaleRef(
+                tokens.semantic.surface.darkScale,
+                "semantic.surface.darkScale",
+            );
         }
-        if (darkScale && !scaleExists(darkScale)) {
-            issues.push({
-                path: "semantic.surface.darkScale",
-                message: unknownScaleMessage(darkScale),
-            });
+    }
+    if (tokens.semantic?.extra) {
+        for (const [role, ref] of Object.entries(tokens.semantic.extra)) {
+            checkScaleRef(ref, `semantic.extra.${role}`);
         }
     }
 
@@ -116,7 +125,7 @@ export function validateTokens(
 }
 
 function validateRefs(
-    root: TokenSchema | AutoTokenSchema,
+    root: ThemeUnifyConfig,
     node: unknown,
     currentPath: string,
     issues: ValidationIssue[],
@@ -141,11 +150,7 @@ function validateRefs(
     }
 }
 
-function resolveRefPath(
-    root: TokenSchema | AutoTokenSchema,
-    refPath: string,
-): unknown {
-    // Try direct resolution from primitive first
+function resolveRefPath(root: ThemeUnifyConfig, refPath: string): unknown {
     const primitiveAliases: Record<string, string> = {
         colors: "primitive.colors",
         spacing: "primitive.spacing",

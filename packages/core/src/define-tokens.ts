@@ -1,7 +1,5 @@
-import type { TokenSchema, AutoTokenSchema } from "./types.js";
+import type { ThemeUnifyConfig } from "./types.js";
 
-export function defineTokens<T extends TokenSchema | AutoTokenSchema>(
-  schema: T,
-): T {
-  return schema;
+export function defineTokens<T extends ThemeUnifyConfig>(schema: T): T {
+    return schema;
 }

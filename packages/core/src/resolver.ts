@@ -1,88 +1,43 @@
 import type {
-    TokenSchema,
-    AutoTokenSchema,
+    ThemeUnifyConfig,
     ResolvedTokens,
-    ResolvedAutoTokens,
-    ResolvedPrimeVueConfig,
-    ResolvedPrimeVueOverrides,
+    ResolvedPresetConfig,
+    PresetOverrides,
 } from "./types.js";
 import { isRef } from "./types.js";
 import { CircularReferenceError, UnresolvedRefError } from "./errors.js";
 import { BUILTIN_PALETTES, isBuiltinPalette } from "./builtin-palettes.js";
 
 /**
- * Eagerly resolve all { ref } pointers in the token tree.
+ * Eagerly resolve all `{ ref }` pointers in the token tree.
  * Returns a new tree where every ref is replaced with its literal value.
  */
-export function resolveRefs(tokens: TokenSchema): ResolvedTokens;
-export function resolveRefs(tokens: AutoTokenSchema): ResolvedAutoTokens;
-export function resolveRefs(
-    tokens: TokenSchema | AutoTokenSchema,
-): ResolvedTokens | ResolvedAutoTokens;
-export function resolveRefs(
-    tokens: TokenSchema | AutoTokenSchema,
-): ResolvedTokens | ResolvedAutoTokens {
-    const resolver = new RefResolver(tokens as TokenSchema);
+export function resolveRefs(tokens: ThemeUnifyConfig): ResolvedTokens {
+    const resolver = new RefResolver(tokens);
 
-    // Detect auto mode: semantic is required, and primevue has { base?, overrides? } shape
-    if (isAutoSchema(tokens)) {
-        const resolvedOverrides = tokens.primevue?.overrides
+    let preset: ResolvedPresetConfig | undefined;
+    if (tokens.preset) {
+        const overrides = tokens.preset.overrides
             ? (resolver.resolveNode(
-                tokens.primevue.overrides,
-                "primevue.overrides",
-            ) as ResolvedPrimeVueOverrides)
+                tokens.preset.overrides,
+                "preset.overrides",
+            ) as PresetOverrides)
             : undefined;
-
-        return {
-            meta: tokens.meta,
-            primitive: tokens.primitive,
-            semantic: tokens.semantic,
-            primevue: tokens.primevue
-                ? {
-                    base: tokens.primevue.base,
-                    overrides: resolvedOverrides,
-                }
-                : undefined,
-            unocss: tokens.unocss,
-        } as ResolvedAutoTokens;
+        preset = { base: tokens.preset.base, overrides };
     }
-
-    // Legacy mode
-    const resolvedPrimevue = tokens.primevue
-        ? (resolver.resolveNode(
-            tokens.primevue,
-            "primevue",
-        ) as ResolvedPrimeVueConfig)
-        : undefined;
 
     return {
         meta: tokens.meta,
         primitive: tokens.primitive,
         semantic: tokens.semantic,
-        primevue: resolvedPrimevue,
+        preset,
         unocss: tokens.unocss,
     };
 }
 
-function isAutoSchema(
-    tokens: TokenSchema | AutoTokenSchema,
-): tokens is AutoTokenSchema {
-    if (!tokens.semantic) return false;
-    if (!tokens.primevue) return true; // semantic but no primevue = auto mode
-    // Auto mode: primevue has { base?, overrides? } but NOT { colorScheme, focusRing, formField }
-    const pv = tokens.primevue as Record<string, unknown>;
-    return (
-        ("overrides" in pv || "base" in pv) &&
-        !("colorScheme" in pv) &&
-        !("focusRing" in pv) &&
-        !("formField" in pv)
-    );
-}
-
 class RefResolver {
-    private root: TokenSchema | AutoTokenSchema;
+    private root: ThemeUnifyConfig;
 
-    // Aliases so refs like "colors.beetroot.500" resolve to "primitive.colors.beetroot.500"
     private static PRIMITIVE_ALIASES: ReadonlyMap<string, string> = new Map([
         ["colors", "primitive.colors"],
         ["spacing", "primitive.spacing"],
@@ -92,22 +47,17 @@ class RefResolver {
         ["fontWeight", "primitive.fontWeight"],
     ]);
 
-    constructor(root: TokenSchema | AutoTokenSchema) {
+    constructor(root: ThemeUnifyConfig) {
         this.root = root;
     }
 
-    /**
-     * Resolve a single ref string to its literal value.
-     * Tracks the visited path set to detect cycles.
-     */
     resolveRef(
         refPath: string,
         location: string,
         visited: Set<string> = new Set(),
     ): string {
         if (visited.has(refPath)) {
-            const cycle = [...visited, refPath];
-            throw new CircularReferenceError(cycle);
+            throw new CircularReferenceError([...visited, refPath]);
         }
         visited.add(refPath);
 
@@ -116,7 +66,6 @@ class RefResolver {
             throw new UnresolvedRefError(refPath, location);
         }
 
-        // If the resolved value is itself a ref, resolve recursively
         if (isRef(value)) {
             return this.resolveRef(value.ref, location, visited);
         }
@@ -125,17 +74,17 @@ class RefResolver {
             return value;
         }
 
-        // If it's an object (e.g., a semantic background that points to another ref)
         if (typeof value === "object" && value !== null && "ref" in value) {
-            return this.resolveRef((value as { ref: string }).ref, location, visited);
+            return this.resolveRef(
+                (value as { ref: string }).ref,
+                location,
+                visited,
+            );
         }
 
         throw new UnresolvedRefError(refPath, location);
     }
 
-    /**
-     * Recursively resolve all refs in an arbitrary object tree.
-     */
     resolveNode(node: unknown, path: string): unknown {
         if (node === null || node === undefined) return node;
 
@@ -168,9 +117,6 @@ class RefResolver {
         return node;
     }
 
-    /**
-     * Navigate the token tree by dot-path, applying primitive aliases.
-     */
     private getValueAtPath(refPath: string): unknown {
         let fullPath = refPath;
         const firstSegment = refPath.split(".")[0];
@@ -191,8 +137,6 @@ class RefResolver {
                 return undefined;
             }
             const next = (current as Record<string, unknown>)[part];
-            // Builtin palette fallback: when walking primitive.colors.<name>...
-            // and <name> isn't user-defined, fall back to the builtin dictionary.
             if (
                 next === undefined &&
                 i >= 1 &&

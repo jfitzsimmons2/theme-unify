@@ -1,5 +1,16 @@
 # PrimeVue Unstyled Mode + UnoCSS PT — Migration Plan
 
+> **⚠️ Superseded.** This plan describes a no-longer-current architecture
+> (PrimeVue unstyled mode + a `generatePrimeVuePT` generator). Both have
+> been removed in favor of a `definePreset(Aura, ...)`-based pipeline
+> where PrimeVue's CSS variables are the runtime source of truth and
+> UnoCSS values are emitted as `var(--p-*)` references. See
+> [docs/architecture.md](docs/architecture.md) and
+> [docs/generators.md](docs/generators.md) for the current design. This
+> file is kept for historical context only.
+
+---
+
 Switch from PrimeVue's styled design-token mode to **unstyled mode**. Add a new `generatePrimeVuePT` generator in the core package that produces a passthrough (PT) preset with UnoCSS utility classes derived from tokens. Update the playground to use `unstyled: true` with the generated PT, making UnoCSS the single source of truth for all component styling. Keep the existing styled generator for backwards compatibility.
 
 ---

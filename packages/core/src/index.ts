@@ -4,16 +4,12 @@ export { loadTokens } from "./load-tokens.js";
 export { resolveRefs } from "./resolver.js";
 export { validateTokens } from "./validator.js";
 export {
-    generatePrimeVue,
-    generatePrimeVueBaseCss,
-    buildPrimeVuePreset,
-} from "./generators/primevue.js";
-export { generateUnoCSS } from "./generators/unocss-theme.js";
-export { generateShortcuts } from "./generators/unocss-shortcuts.js";
-export {
-    generatePrimeVuePT,
-    buildPrimeVuePTObject,
-} from "./generators/primevue-pt.js";
+    generatePreset,
+    buildPresetObject,
+    resolveSemanticScale,
+} from "./generators/preset.js";
+export { generateUnoTheme } from "./generators/uno-theme.js";
+export { generateShortcuts } from "./generators/shortcuts.js";
 export {
     BUILTIN_PALETTES,
     BUILTIN_PALETTE_NAMES,
@@ -24,10 +20,7 @@ export type { BuiltinPaletteName } from "./builtin-palettes.js";
 
 // Types
 export type {
-    TokenSchema,
-    AutoTokenSchema,
-    PTSeverityClassMap,
-    PTSurfaceClassMap,
+    ThemeUnifyConfig,
     ColorStep,
     ColorScale,
     Ref,
@@ -35,19 +28,16 @@ export type {
     MetaConfig,
     PrimitiveConfig,
     SemanticConfig,
-    PrimeVueConfig,
-    PrimeVueOverrides,
+    SemanticScaleRef,
+    SemanticSurfaceConfig,
+    PresetConfig,
+    PresetOverrides,
     UnoCSSConfig,
     UnoCSSShortcut,
     ResolvedTokens,
-    ResolvedAutoTokens,
-    ResolvedPrimeVueConfig,
-    ResolvedPrimeVueOverrides,
+    ResolvedPresetConfig,
     PrimeVueBaseTheme,
     TypographyTokens,
-    SemanticColorMapping,
-    SemanticRefMapping,
-    SemanticSurfaceConfig,
 } from "./types.js";
 
 export { COLOR_STEPS, PRIMEVUE_BASE_THEMES, isRef } from "./types.js";

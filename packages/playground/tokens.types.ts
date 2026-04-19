@@ -1,12 +1,11 @@
-import type { AutoTokenSchema, BuiltinPaletteName, Ref } from "theme-unify";
-import type { ComponentsDesignTokens, Preset } from "@primeuix/themes/types";
+import type { ThemeUnifyConfig, BuiltinPaletteName, Ref } from "theme-unify";
+import type { Preset } from "@primeuix/themes/types";
 import type { AuraBaseDesignTokens } from "@primeuix/themes/aura/base";
 
 /**
  * Recursively widens every `string` leaf to `string | Ref` so theme-unify
  * cross-references (`{ ref: "radii.sm" }`) remain valid wherever PrimeVue
- * design-token types expect a string. Other primitive leaves
- * (numbers, booleans, etc.) are preserved as-is.
+ * design-token types expect a string.
  */
 export type DeepTokenValue<T> = T extends string
     ? string | Ref
@@ -21,52 +20,37 @@ export type DeepTokenValue<T> = T extends string
     : T;
 
 type AuraPreset = Preset<AuraBaseDesignTokens>;
-type AuraSemantic = NonNullable<AuraPreset["semantic"]>;
-
-export type TypedFocusRing = DeepTokenValue<NonNullable<AuraSemantic["focusRing"]>>;
-export type TypedFormField = DeepTokenValue<NonNullable<AuraSemantic["formField"]>>;
-export type TypedComponents = DeepTokenValue<ComponentsDesignTokens>;
-export type TypedColorScheme = DeepTokenValue<NonNullable<AuraSemantic["colorScheme"]>>;
-
-export interface TypedPrimeVueOverrides {
-    focusRing?: Partial<TypedFocusRing>;
-    formField?: Partial<TypedFormField>;
-    components?: TypedComponents;
-    colorScheme?: TypedColorScheme;
-}
-
-export type TypedAutoTokenSchema = Omit<AutoTokenSchema, "primevue" | "semantic"> & {
-    primevue?: {
-        base?: NonNullable<AutoTokenSchema["primevue"]>["base"];
-        overrides?: TypedPrimeVueOverrides;
-    };
-    semantic: TypedSemanticConfig;
-};
 
 /**
- * Widen `scale` fields with a `BuiltinPaletteName` union so editors
- * autocomplete builtin palettes (purple, sky, indigo, …) alongside any
- * user-defined primitive color keys. Plain `string` is still accepted for
- * user-defined names that aren't part of the builtin set.
+ * Aura preset shape with refs allowed at every string leaf — used as the
+ * type for `preset.overrides` so editors autocomplete every PrimeVue knob.
  */
+export type TypedPresetOverrides = DeepTokenValue<AuraPreset>;
+
 type ScaleName = BuiltinPaletteName | (string & {});
 
-export interface TypedSemanticColorMapping {
-    scale: ScaleName;
-}
-
 export interface TypedSemanticSurfaceConfig {
-    scale: ScaleName;
-    darkScale?: ScaleName;
-    invertInDarkMode?: boolean;
+    scale: ScaleName | NonNullable<ThemeUnifyConfig["primitive"]["colors"]>[string];
+    darkScale?: ScaleName | NonNullable<ThemeUnifyConfig["primitive"]["colors"]>[string];
 }
 
-type BaseSemantic = NonNullable<AutoTokenSchema["semantic"]>;
-export type TypedSemanticConfig = Omit<BaseSemantic, "colors" | "surface"> & {
-    colors?: Record<string, TypedSemanticColorMapping>;
+export type TypedSemanticConfig = {
+    primary?: ScaleName | NonNullable<ThemeUnifyConfig["primitive"]["colors"]>[string];
     surface?: TypedSemanticSurfaceConfig;
+    extra?: Record<string, ScaleName | NonNullable<ThemeUnifyConfig["primitive"]["colors"]>[string]>;
 };
 
-export function defineTypedTokens<T extends TypedAutoTokenSchema>(schema: T): T {
+export type TypedThemeUnifyConfig = Omit<
+    ThemeUnifyConfig,
+    "preset" | "semantic"
+> & {
+    semantic?: TypedSemanticConfig;
+    preset?: {
+        base?: NonNullable<ThemeUnifyConfig["preset"]>["base"];
+        overrides?: TypedPresetOverrides;
+    };
+};
+
+export function defineTypedTokens<T extends TypedThemeUnifyConfig>(schema: T): T {
     return schema;
 }

@@ -24,10 +24,8 @@ Source: [load-tokens.ts](../packages/core/src/load-tokens.ts).
 - Resolves the path against `process.cwd()`.
 - Uses `jiti` to dynamically import the TS config file (no Node loader
   hooks, no pre-compilation step).
-- Reads the `default` export.
+- Reads the `default` export and asserts it is a `ThemeUnifyConfig`.
 - Calls `validateTokens` before returning.
-
-The CLI passes the raw `--config` value through `path.resolve`.
 
 ## 2. `validateTokens(tokens)`
 
@@ -36,49 +34,38 @@ Source: [validator.ts](../packages/core/src/validator.ts).
 Collects all issues into a `ValidationIssue[]`, then throws a single
 `TokenValidationError` if non-empty. Checks include:
 
-- All color scales have all 11 `ColorStep` keys.
-- `primevue.base` (if present) is in `PRIMEVUE_BASE_THEMES`.
-- All ref paths resolve (delegates to `resolveRefs` internally for the dry
-  run).
-- CSS-value-shaped strings (e.g. `radii`) are non-empty strings.
+- All color scales in `primitive.colors` have all 11 `ColorStep` keys.
+- Every inline `ColorScale` in `semantic` is fully populated.
+- Every `SemanticScaleRef` string names either a key in
+  `primitive.colors` or a builtin palette.
+- `preset.base` (if present) is in `PRIMEVUE_BASE_THEMES`.
+- All ref paths inside `preset.overrides` resolve.
 
 ## 3. `resolveRefs(tokens)`
 
 Source: [resolver.ts](../packages/core/src/resolver.ts).
 
-- Walks the entire object tree.
+- Walks `preset.overrides` only — `primitive` and `semantic` do not use
+  `{ ref }` objects.
 - For each `Ref`, expands the alias prefix (see
-  [token-schema.md](token-schema.md#path-aliases)) and looks up the target.
-- Tracks the resolution chain to detect cycles → `CircularReferenceError`
-  with the offending `cycle: string[]`.
-- Missing target → `UnresolvedRefError` with the `refPath` and `location`
-  in the source object.
+  [token-schema.md](token-schema.md#refs)) and looks up the target.
+- Tracks the resolution chain to detect cycles → `CircularReferenceError`.
+- Missing target → `UnresolvedRefError`.
 
-Returns `ResolvedTokens` / `ResolvedAutoTokens` where every `TokenValue` is
-a `string`.
+Returns `ResolvedThemeUnifyConfig` where every value inside
+`preset.overrides` is a string.
 
 ## 4. Generators
 
-Each generator is a pure `(resolved) => string` function plus an optional
-runtime builder `(resolved) => object`. See
-[generators.md](generators.md).
-
-The CLI calls all generators in sequence:
+The CLI calls all three in sequence:
 
 ```ts
-const primevueCode = generatePrimeVue(resolved);
-const unoCSSCode   = generateUnoCSS(resolved);
+const presetCode    = generatePreset(resolved);
+const unoThemeCode  = generateUnoTheme(resolved);
 const shortcutsCode = generateShortcuts(resolved);
-const ptCode       = generatePrimeVuePT(resolved);
-const baseCssCode  = generatePrimeVueBaseCss(resolved); // null when no
-                                                         // typography base
 ```
 
-The PrimeVue generator emits two artifacts: the preset object
-(`primevue-preset.ts`) and an optional CSS preflight
-(`primevue-base.css`) carrying `font-size` / `line-height` / `font-family`
-declarations. The CSS file is only written when at least one of
-`primitive.typography.baseFontSize` / `baseLineHeight` is set.
+See [generators.md](generators.md) for what each one emits.
 
 ## 5. `writeOutput(outDir, filename, content)`
 
@@ -90,7 +77,7 @@ Source: [write-output.ts](../packages/core/src/write-output.ts).
 - Otherwise writes and returns `true`.
 
 The CLI prints `✓ name` for written files and `· name (unchanged)` for
-skipped ones.
+skipped ones. `--force` writes regardless.
 
 ## Error classes
 

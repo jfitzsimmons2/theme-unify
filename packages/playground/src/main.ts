@@ -5,9 +5,7 @@ import ConfirmationService from "primevue/confirmationservice";
 import DialogService from "primevue/dialogservice";
 import Tooltip from "primevue/tooltip";
 import Ripple from "primevue/ripple";
-import { primevuePT } from "./generated/primevue-pt";
-import { GeneratedPreset } from "./generated/primevue-preset";
-import "./generated/primevue-base.css";
+import { GeneratedPreset } from "./generated/preset";
 import "virtual:uno.css";
 import "./style.css";
 import App from "./App.vue";
@@ -18,10 +16,15 @@ app.use(PrimeVue, {
     theme: {
         preset: GeneratedPreset,
         options: {
-            darkModeSelector: ".dark"
-        }
+            darkModeSelector: ".dark",
+            cssLayer: {
+                name: "primevue",
+                // UnoCSS utilities (in the unutilities layer) override PrimeVue
+                // component defaults so one-off utility tweaks always win.
+                order: "unbase, primevue, unutilities",
+            },
+        },
     },
-    pt: primevuePT
 });
 
 app.use(ToastService);

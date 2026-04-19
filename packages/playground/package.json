@@ -9,8 +9,8 @@
         "prebuild": "pnpm run generate:force",
         "build": "vue-tsc -b && vite build",
         "preview": "vite preview",
-        "generate": "theme-unify -c ./tokens.config.ts -o ./src/generated --pt primevue-pt.ts",
-        "generate:force": "theme-unify -c ./tokens.config.ts -o ./src/generated --pt primevue-pt.ts --force"
+        "generate": "theme-unify -c ./tokens.config.ts -o ./src/generated",
+        "generate:force": "theme-unify -c ./tokens.config.ts -o ./src/generated --force"
     },
     "dependencies": {
         "@primeuix/themes": "^2.0.3",

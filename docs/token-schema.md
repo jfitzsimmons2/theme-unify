@@ -1,167 +1,145 @@
 # Token schema
 
-The full source of truth is
-[packages/core/src/types.ts](../packages/core/src/types.ts). This page
-gives a contributor-oriented overview.
+Source of truth: [packages/core/src/types.ts](../packages/core/src/types.ts).
 
-## Two schemas
+theme-unify has **one** input schema, `ThemeUnifyConfig`. It's modeled
+around the way PrimeVue 4 organizes design tokens: a `primitive` layer of
+raw values, a `semantic` layer that names roles, and `preset.overrides`
+for full PrimeVue customization. The same config also drives UnoCSS so
+utility classes resolve to the exact same `var(--p-*)` variables PrimeVue
+emits at runtime.
 
-There are **two** input schemas, both routed through the same pipeline.
-
-### `TokenSchema` (explicit)
-
-The original schema. The user fully specifies the PrimeVue and UnoCSS
-sections. Used by all current tests
-([packages/core/tests/fixtures/tokens.fixture.ts](../packages/core/tests/fixtures/tokens.fixture.ts)).
+## Top-level shape
 
 ```ts
-interface TokenSchema {
-  meta: MetaConfig;
+interface ThemeUnifyConfig {
+  meta: { name: string; darkModeSelector?: string };
   primitive: PrimitiveConfig;
-  semantic?: SemanticConfig;
-  primevue?: PrimeVueConfig;
-  unocss?: UnoCSSConfig;
+  semantic: SemanticConfig;
+  preset?: { base?: PrimeVueBaseTheme; overrides?: DeepTokenValue<AuraPreset> };
+  unocss?: { shortcuts?: Record<string, { light: string; dark: string }> };
 }
 ```
 
-### `AutoTokenSchema` (derived)
+`darkModeSelector` defaults to `.dark` and is consumed by both PrimeVue
+(`theme.options.darkModeSelector`) and the UnoCSS shortcuts generator.
 
-A simplified schema where PrimeVue and UnoCSS configs are auto-derived from
-`semantic`. Users only provide overrides:
+## `primitive`
 
-```ts
-interface AutoTokenSchema {
-  meta: MetaConfig;
-  primitive: PrimitiveConfig;
-  semantic: SemanticConfig;            // required here
-  primevue?: { base?, overrides? };
-  unocss?: { colorAliases?, extraShortcuts? };
-}
-```
+Raw token values. **No refs allowed inside `primitive`.**
 
-Generators accept either via the union types `ResolvedTokens |
-ResolvedAutoTokens`.
-
-## Sections
-
-### `meta`
-
-```ts
-{ name: string; darkModeStrategy: "class" | "media"; darkModeSelector: string }
-```
-
-`darkModeSelector` is consumed by both PrimeVue (`options.darkModeSelector`)
-and the UnoCSS shortcuts generator.
-
-### `primitive`
-
-Raw values — no refs allowed inside primitive itself.
-
-- `colors: Record<string, ColorScale>` — each scale must have all 11 steps:
-  `50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950` (see
-  `COLOR_STEPS`).
-- `spacing`, `radii`, `shadows`, `fontWeight` — flat string maps.
-- `typography: TypographyTokens` — structured:
-  - `fontFamily?: string` → emitted as UnoCSS `fontFamily.sans` and as a
-    `font-family` declaration in the PrimeVue base CSS.
-  - `baseFontSize?: string` → emitted as UnoCSS `fontSize.base` (paired with
-    `baseLineHeight` as a tuple when both are set) and as a `font-size`
-    declaration in the PrimeVue base CSS preflight.
-  - `baseLineHeight?: string` → emitted as UnoCSS `lineHeight.base` and as a
-    `line-height` declaration in the PrimeVue base CSS preflight.
-
-  Both frameworks share these typography baselines so PrimeVue components and
-  UnoCSS utilities (`text-base`, `leading-base`) stay aligned.
-
-### `semantic`
-
-The "design intent" layer. Refs into `primitive` are typical here.
-
-- `colors: Record<string, { scale: string }>` — names a color role
-  (`primary`, `secondary`, …) and points it at a primitive color name
-  **or a builtin palette name** (see [Builtin palettes](#builtin-palettes)).
-- `backgrounds: Record<string, { ref: string }>` — named background tokens
-  (e.g. `pageLight`, `pageDark`).
-- `surface: { scale, darkScale?, invertInDarkMode? }` — special: drives the
-  generated 0–950 surface palette. `scale` and `darkScale` may also name a
-  builtin palette. `invertInDarkMode` reverses the scale in dark mode
-  (Aura convention). See `buildSurfaceObject` in
-  [packages/core/src/generators/utils.ts](../packages/core/src/generators/utils.ts).
-
-### `primevue`
-
-Either `PrimeVueConfig` (explicit, with `base`, `colorScheme`, `focusRing`,
-`formField`, `components`) or `{ base?, overrides? }` for auto-mode.
-
-`base` must be one of `PRIMEVUE_BASE_THEMES`: `"aura" | "lara" | "nora" |
-"material"`.
-
-### `unocss`
-
-`colorAliases` rename a primitive color in the UnoCSS theme (e.g. `warm` →
-`oatmeal` exposes both `bg-warm-500` and `bg-oatmeal-500`).
-`shortcuts` / `extraShortcuts` map a class name to `{ light, dark }`
-strings — see [generators.md](generators.md#unocss-shortcuts).
-
-## Refs
-
-Anywhere a `TokenValue` is accepted, you can use either a string literal or
-`{ ref: "dot.path.string" }`.
-
-### Path aliases
-
-The resolver expands these prefixes — see
-[packages/core/src/resolver.ts](../packages/core/src/resolver.ts):
-
-| Alias | Expands to |
-| --- | --- |
-| `colors.x.500` | `primitive.colors.x.500` |
-| `spacing.md` | `primitive.spacing.md` |
-| `radii.lg` | `primitive.radii.lg` |
-| `shadows.md` | `primitive.shadows.md` |
-| `fontWeight.bold` | `primitive.fontWeight.bold` |
-
-Refs may chain (a ref pointing at another ref). Cycles throw
-`CircularReferenceError`.
-
-## Color scales
+| Field | Type | Notes |
+| --- | --- | --- |
+| `colors` | `Record<string, ColorScale>` | Each scale must have all 11 steps (`50`–`950`). |
+| `spacing` | `Record<string, string>` | Optional. Emitted as `--p-spacing-*`. |
+| `radii` | `Record<string, string>` | Optional. Merged into PrimeVue's `borderRadius` primitive. |
+| `shadows` | `Record<string, string>` | Optional. Emitted as `--p-shadow-*`. |
+| `typography` | `{ fontFamily?, baseFontSize?, baseLineHeight? }` | Optional. Emitted as `--p-font-family`, `--p-font-size-base`, `--p-line-height-base`. |
+| `fontWeight` | `Record<string, string>` | Optional. Emitted as `--p-font-weight-*`. |
 
 ```ts
 type ColorStep = 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950;
 type ColorScale = Record<ColorStep, string>;
 ```
 
-The validator enforces that every color scale has all 11 steps. Surface
-generation also relies on this completeness.
+## `semantic`
 
-## Builtin palettes
+The "design intent" layer. Each role is a `SemanticScaleRef`:
 
-Source:
-[packages/core/src/builtin-palettes.ts](../packages/core/src/builtin-palettes.ts).
+```ts
+type SemanticScaleRef = string | ColorScale;
+```
 
-theme-unify ships 22 ready-made color scales whose hex values match the
-Tailwind v3 / PrimeUix Aura palettes verbatim. Any
-`semantic.colors.<role>.scale`, `semantic.surface.scale`, or
-`semantic.surface.darkScale` may name a builtin instead of a key from
-`primitive.colors`:
+A string names a scale (a key in `primitive.colors` or a [builtin
+palette](#builtin-palettes)). An inline `ColorScale` object lets you
+provide a one-off scale without polluting `primitive.colors`.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `primary` | `SemanticScaleRef` | Becomes PrimeVue's `semantic.primary` (50–950 step refs). |
+| `surface` | `{ light: SemanticScaleRef; dark: SemanticScaleRef }` | Surface palette per color scheme. Step `0` is added automatically: `#ffffff` (light) / `#0a0a0a` (dark). |
+| `extra` | `Record<string, SemanticScaleRef>` | Free-form named roles such as `success`, `warning`, `info`, `danger`. Each emits a full 50–950 scale under `--p-{name}-*`. |
+
+Example:
 
 ```ts
 semantic: {
-  colors: {
-    primary: { scale: "purple" },   // builtin
-    success: { scale: "emerald" },  // builtin
-    accent:  { scale: "carrot" },   // user-defined in primitive.colors
+  primary: "blueberry",
+  surface: { light: "oatmeal", dark: "chickpea" },
+  extra: {
+    success: "kale",
+    warning: "carrot",
+    danger: "beetroot",
+    info:    "eggplant",
   },
-  surface: { scale: "slate", darkScale: "zinc" }, // both builtin
 }
 ```
 
-Refs into builtins also work via the existing `colors.<name>.<step>`
-alias — e.g. `{ ref: "colors.purple.500" }` resolves to `#a855f7`
-regardless of whether `purple` exists in `primitive.colors`.
+## `preset`
+
+Optional. Lets you reach the full Aura preset shape.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `base` | `"aura" \| "lara" \| "nora" \| "material"` | Defaults to `"aura"`. Drives the `definePreset` import in the generated file. |
+| `overrides` | `DeepTokenValue<AuraPreset>` | Deep-merged onto the generated preset. Refs (`{ ref: "radii.sm" }`) are resolved before merge. Use this for `semantic.focusRing`, `semantic.formField`, `components.*`, etc. |
+
+`overrides` is typed via the `AuraPreset` type from `@primeuix/themes` —
+your IDE will autocomplete every PrimeVue knob.
+
+## `unocss.shortcuts`
+
+```ts
+unocss: {
+  shortcuts: {
+    "bg-page":     { light: "bg-surface-50",  dark: "dark:bg-surface-950" },
+    "text-default":{ light: "text-surface-900", dark: "dark:text-surface-50" },
+  }
+}
+```
+
+Each entry is collapsed to a single space-joined utility string
+(`bg-surface-50 dark:bg-surface-950`) so the dark-mode variant rides
+along automatically.
+
+## Refs
+
+Anywhere a value is accepted in `preset.overrides`, you may use either a
+literal or a ref:
+
+```ts
+{ ref: "radii.sm" }            // → primitive.radii.sm
+{ ref: "colors.beetroot.500" } // → primitive.colors.beetroot[500]
+{ ref: "spacing.md" }          // → primitive.spacing.md
+{ ref: "shadows.lg" }          // → primitive.shadows.lg
+{ ref: "fontWeight.bold" }     // → primitive.fontWeight.bold
+```
+
+The resolver expands these aliases — see
+[packages/core/src/resolver.ts](../packages/core/src/resolver.ts).
+Cycles throw `CircularReferenceError`; missing targets throw
+`UnresolvedRefError`.
+
+> **Note**: refs are NOT used inside `semantic` itself — `semantic`
+> entries reference scales by name (string) or inline scale (object).
+
+## Builtin palettes
+
+Source: [packages/core/src/builtin-palettes.ts](../packages/core/src/builtin-palettes.ts).
+
+theme-unify ships 22 ready-made color scales whose hex values match the
+Tailwind v3 / PrimeUix Aura palettes verbatim. Any `SemanticScaleRef`
+string may name one:
+
+```ts
+semantic: {
+  primary: "purple",                                  // builtin
+  surface: { light: "slate", dark: "zinc" },          // both builtin
+  extra: { success: "emerald", danger: "red" },       // both builtin
+}
+```
 
 Available names (`BUILTIN_PALETTE_NAMES`):
-
 `emerald`, `green`, `lime`, `red`, `orange`, `amber`, `yellow`, `teal`,
 `cyan`, `sky`, `blue`, `indigo`, `violet`, `purple`, `fuchsia`, `pink`,
 `rose`, `slate`, `gray`, `zinc`, `neutral`, `stone`.
@@ -170,16 +148,11 @@ Available names (`BUILTIN_PALETTE_NAMES`):
 
 - **User-defined wins.** If `primitive.colors.<name>` exists, it shadows
   the builtin of the same name; `resolveScale` emits a one-time
-  `console.warn` on collision so the override is intentional.
+  `console.warn` on collision.
 - **Validation.** The validator rejects any scale name that is neither in
-  `primitive.colors` nor a builtin, with an error message that lists the
-  builtin names.
-- **UnoCSS emission is lean.** [unocss-theme.ts](generators.md#unocss-themets--unocss-theme)
-  only includes a builtin in the generated `colors` export when it is
-  actually referenced via `semantic`.
-- **PrimeVue parity.** Builtin hexes match PrimeUix Aura defaults so a
-  `primary: { scale: "purple" }` config renders identically to PrimeVue's
-  out-of-the-box purple theme.
+  `primitive.colors` nor a builtin.
+- **UnoCSS emission stays lean.** Builtins are included in the generated
+  `colors` export only when actually referenced via `semantic`.
 
 ### Public API
 
@@ -188,18 +161,12 @@ From [packages/core/src/index.ts](../packages/core/src/index.ts):
 - `BUILTIN_PALETTES: Record<BuiltinPaletteName, ColorScale>`
 - `BUILTIN_PALETTE_NAMES: readonly BuiltinPaletteName[]`
 - `isBuiltinPalette(name: string): name is BuiltinPaletteName`
-- `resolveScale(name, primitive): ColorScale | undefined` — user-defined
-  first, then builtin fallback
+- `resolveScale(name, primitive): ColorScale | undefined`
 - `type BuiltinPaletteName`
 
 ### Editor autocomplete
 
-The playground's `defineTypedTokens` helper widens `scale` fields with
-`BuiltinPaletteName | (string & {})` so editors suggest builtin names
-alongside user-defined keys. See
+The playground's `defineTypedTokens` helper widens scale-name fields
+with `BuiltinPaletteName | (string & {})` so editors suggest builtin
+names alongside user-defined keys. See
 [packages/playground/tokens.types.ts](../packages/playground/tokens.types.ts).
-
-## Resolved types
-
-After `resolveRefs`, every `TokenValue` is a string. Generators only ever
-operate on `ResolvedTokens` / `ResolvedAutoTokens`.

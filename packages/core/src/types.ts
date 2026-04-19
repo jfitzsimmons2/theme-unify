@@ -1,241 +1,138 @@
 // ---- Color Steps ----
 export type ColorStep =
-  | 50
-  | 100
-  | 200
-  | 300
-  | 400
-  | 500
-  | 600
-  | 700
-  | 800
-  | 900
-  | 950;
+    | 50
+    | 100
+    | 200
+    | 300
+    | 400
+    | 500
+    | 600
+    | 700
+    | 800
+    | 900
+    | 950;
 
 export const COLOR_STEPS: readonly ColorStep[] = [
-  50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950,
+    50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950,
 ];
 
 export type ColorScale = Record<ColorStep, string>;
 
 // ---- Ref ----
 export interface Ref {
-  ref: string;
+    ref: string;
 }
 
 export type TokenValue = string | Ref;
 
 export function isRef(value: unknown): value is Ref {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "ref" in value &&
-    typeof (value as Ref).ref === "string"
-  );
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        "ref" in value &&
+        typeof (value as Ref).ref === "string"
+    );
 }
 
 // ---- Meta ----
 export interface MetaConfig {
-  name: string;
-  darkModeStrategy: "class" | "media";
-  darkModeSelector: string;
+    name: string;
+    /** CSS selector PrimeVue/UnoCSS use to switch into dark mode (default: ".dark"). */
+    darkModeSelector?: string;
 }
 
 // ---- Primitive ----
 export interface TypographyTokens {
-  fontFamily: string;
-  baseFontSize?: string;
-  baseLineHeight?: string;
+    fontFamily: string;
+    baseFontSize?: string;
+    baseLineHeight?: string;
 }
 
 export interface PrimitiveConfig {
-  colors: Record<string, ColorScale>;
-  spacing?: Record<string, string>;
-  radii?: Record<string, string>;
-  shadows?: Record<string, string>;
-  typography?: TypographyTokens;
-  fontWeight?: Record<string, string>;
+    colors: Record<string, ColorScale>;
+    spacing?: Record<string, string>;
+    radii?: Record<string, string>;
+    shadows?: Record<string, string>;
+    typography?: TypographyTokens;
+    fontWeight?: Record<string, string>;
 }
 
 // ---- Semantic ----
-export interface SemanticColorMapping {
-  scale: string;
-}
-
-export interface SemanticRefMapping {
-  ref: string;
-}
+/**
+ * A semantic role can either point to a named scale (user-defined or builtin)
+ * or supply a full literal scale inline.
+ */
+export type SemanticScaleRef = string | ColorScale;
 
 export interface SemanticSurfaceConfig {
-  scale: string;
-  darkScale?: string;
-  invertInDarkMode?: boolean;
+    scale: SemanticScaleRef;
+    darkScale?: SemanticScaleRef;
 }
 
 export interface SemanticConfig {
-  colors?: Record<string, SemanticColorMapping>;
-  backgrounds?: Record<string, SemanticRefMapping>;
-  surface?: SemanticSurfaceConfig;
+    /** Brand color. Drives PrimeVue `semantic.primary.{step}` and UnoCSS `var(--p-primary-*)`. */
+    primary?: SemanticScaleRef;
+    /** Surface scale (light) and optional darkScale; emitted under colorScheme. */
+    surface?: SemanticSurfaceConfig;
+    /**
+     * Additional semantic roles — each emitted as a custom semantic scale
+     * (e.g. `success`, `warn`, `danger`, `info`). PrimeVue exposes them as
+     * `--p-{role}-{step}`.
+     */
+    extra?: Record<string, SemanticScaleRef>;
 }
 
-// ---- PrimeVue ----
+// ---- Preset (PrimeVue base + overrides) ----
 export type PrimeVueBaseTheme = "aura" | "lara" | "nora" | "material";
 
 export const PRIMEVUE_BASE_THEMES: readonly PrimeVueBaseTheme[] = [
-  "aura",
-  "lara",
-  "nora",
-  "material",
+    "aura",
+    "lara",
+    "nora",
+    "material",
 ];
 
-export interface PrimeVueConfig {
-  base: PrimeVueBaseTheme;
-  colorScheme?: {
-    light?: Record<string, Record<string, TokenValue>>;
-    dark?: Record<string, Record<string, TokenValue>>;
-  };
-  focusRing?: Record<string, TokenValue>;
-  formField?: Record<string, TokenValue>;
-  components?: Record<string, unknown>;
-}
-
 /**
- * Lightweight PrimeVue overrides — used when the user only wants to tweak
- * auto-derived values. The generators will first auto-derive a full
- * PrimeVue config from semantic tokens, then deep-merge these overrides.
+ * Free-form overrides passed straight into `definePreset(Base, { ... })`.
+ * Anything PrimeVue accepts (focusRing, formField, components, colorScheme,
+ * extra primitive entries, ...) can live here. Refs are still resolved.
  */
-export interface PrimeVueOverrides {
-  focusRing?: Record<string, TokenValue>;
-  formField?: Record<string, TokenValue>;
-  components?: Record<string, unknown>;
-  colorScheme?: {
-    light?: Record<string, Record<string, TokenValue>>;
-    dark?: Record<string, Record<string, TokenValue>>;
-  };
+export type PresetOverrides = Record<string, unknown>;
+
+export interface PresetConfig {
+    base?: PrimeVueBaseTheme;
+    overrides?: PresetOverrides;
 }
 
 // ---- UnoCSS ----
 export interface UnoCSSShortcut {
-  light: string;
-  dark: string;
+    light: string;
+    dark: string;
 }
 
 export interface UnoCSSConfig {
-  colorAliases?: Record<string, string>;
-  shortcuts?: Record<string, UnoCSSShortcut>;
-  extraShortcuts?: Record<string, UnoCSSShortcut>;
+    shortcuts?: Record<string, UnoCSSShortcut>;
 }
 
 // ---- Token Schema (input) ----
-export interface TokenSchema {
-  meta: MetaConfig;
-  primitive: PrimitiveConfig;
-  semantic?: SemanticConfig;
-  primevue?: PrimeVueConfig;
-  unocss?: UnoCSSConfig;
+export interface ThemeUnifyConfig {
+    meta: MetaConfig;
+    primitive: PrimitiveConfig;
+    semantic?: SemanticConfig;
+    preset?: PresetConfig;
+    unocss?: UnoCSSConfig;
 }
 
-/**
- * Simplified token schema that auto-derives PrimeVue and UnoCSS configs
- * from semantic tokens, with optional overrides.
- */
-export interface AutoTokenSchema {
-  meta: MetaConfig;
-  primitive: PrimitiveConfig;
-  semantic: SemanticConfig;
-  primevue?: {
+// ---- Resolved (output — refs replaced with literals) ----
+export interface ResolvedPresetConfig {
     base?: PrimeVueBaseTheme;
-    overrides?: PrimeVueOverrides;
-  };
-  unocss?: {
-    colorAliases?: Record<string, string>;
-    extraShortcuts?: Record<string, UnoCSSShortcut>;
-  };
-}
-
-// ---- Resolved types (output — all refs replaced with string) ----
-export interface ResolvedPrimeVueConfig {
-  base: PrimeVueBaseTheme;
-  colorScheme?: {
-    light?: Record<string, Record<string, string>>;
-    dark?: Record<string, Record<string, string>>;
-  };
-  focusRing?: Record<string, string>;
-  formField?: Record<string, string>;
-  components?: Record<string, unknown>;
-}
-
-export interface ResolvedPrimeVueOverrides {
-  focusRing?: Record<string, string>;
-  formField?: Record<string, string>;
-  components?: Record<string, unknown>;
-  colorScheme?: {
-    light?: Record<string, Record<string, string>>;
-    dark?: Record<string, Record<string, string>>;
-  };
+    overrides?: PresetOverrides;
 }
 
 export interface ResolvedTokens {
-  meta: MetaConfig;
-  primitive: PrimitiveConfig;
-  semantic?: SemanticConfig;
-  primevue?: ResolvedPrimeVueConfig;
-  unocss?: UnoCSSConfig;
-}
-
-export interface ResolvedAutoTokens {
-  meta: MetaConfig;
-  primitive: PrimitiveConfig;
-  semantic: SemanticConfig;
-  primevue?: {
-    base?: PrimeVueBaseTheme;
-    overrides?: ResolvedPrimeVueOverrides;
-  };
-  unocss?: {
-    colorAliases?: Record<string, string>;
-    extraShortcuts?: Record<string, UnoCSSShortcut>;
-  };
-}
-
-// ---- PT (Passthrough) internal types ----
-
-/**
- * Maps a severity role to its UnoCSS class strings for filled/outlined/subtle variants.
- * Internal to the PT generator — not exported as user-facing config.
- */
-export interface PTSeverityClassMap {
-  /** Filled background (e.g. "bg-beetroot-500") */
-  bg: string;
-  /** Hover state filled background */
-  bgHover: string;
-  /** Active state filled background */
-  bgActive: string;
-  /** Text color on filled background */
-  text: string;
-  /** Border color for filled variant */
-  border: string;
-  /** Subtle/tinted background for outlined/text variants */
-  bgSubtle: string;
-  /** Text color for outlined/text variants */
-  textSubtle: string;
-  /** Border color for outlined variants */
-  borderSubtle: string;
-}
-
-/**
- * Maps surface/page/elevated background class strings.
- * Internal to the PT generator — not exported as user-facing config.
- */
-export interface PTSurfaceClassMap {
-  pageBg: string;
-  surfaceBg: string;
-  elevatedBg: string;
-  cardBg: string;
-  text: string;
-  textMuted: string;
-  border: string;
-  inputBg: string;
-  inputBorder: string;
-  inputBorderHover: string;
-  inputBorderFocus: string;
+    meta: MetaConfig;
+    primitive: PrimitiveConfig;
+    semantic?: SemanticConfig;
+    preset?: ResolvedPresetConfig;
+    unocss?: UnoCSSConfig;
 }

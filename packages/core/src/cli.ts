@@ -3,14 +3,9 @@ import cac from "cac";
 import { resolve } from "node:path";
 import { loadTokens } from "./load-tokens.js";
 import { resolveRefs } from "./resolver.js";
-
-import {
-    generatePrimeVue,
-    generatePrimeVueBaseCss,
-} from "./generators/primevue.js";
-import { generateUnoCSS } from "./generators/unocss-theme.js";
-import { generateShortcuts } from "./generators/unocss-shortcuts.js";
-import { generatePrimeVuePT } from "./generators/primevue-pt.js";
+import { generatePreset } from "./generators/preset.js";
+import { generateUnoTheme } from "./generators/uno-theme.js";
+import { generateShortcuts } from "./generators/shortcuts.js";
 import { writeOutput } from "./write-output.js";
 import { TokenValidationError } from "./errors.js";
 
@@ -24,24 +19,18 @@ cli
     .option("-c, --config <path>", "Path to tokens.config.ts", {
         default: "./tokens.config.ts",
     })
-    .option("-o, --outDir <path>", "Output directory", { default: "./generated" })
-    .option("--primevue <filename>", "PrimeVue output filename", {
-        default: "primevue-preset.ts",
+    .option("-o, --outDir <path>", "Output directory", {
+        default: "./generated",
     })
-    .option("--unocss <filename>", "UnoCSS theme output filename", {
-        default: "unocss-theme.ts",
+    .option("--preset <filename>", "PrimeVue preset output filename", {
+        default: "preset.ts",
+    })
+    .option("--uno-theme <filename>", "UnoCSS theme output filename", {
+        default: "uno-theme.ts",
     })
     .option("--shortcuts <filename>", "UnoCSS shortcuts output filename", {
-        default: "unocss-shortcuts.ts",
+        default: "shortcuts.ts",
     })
-    .option("--pt <filename>", "PrimeVue PT (passthrough) output filename", {
-        default: "primevue-pt.ts",
-    })
-    .option(
-        "--primevue-base-css <filename>",
-        "PrimeVue base typography CSS output filename",
-        { default: "primevue-base.css" },
-    )
     .option("--dry-run", "Print output to stdout instead of writing files")
     .option("--validate", "Validate config and exit (no output)")
     .option(
@@ -57,8 +46,11 @@ cli
         const force = options.force as boolean;
         const watch = options.watch as boolean;
 
+        const presetName = options.preset as string;
+        const unoThemeName = options.unoTheme as string;
+        const shortcutsName = options.shortcuts as string;
+
         try {
-            // Load and validate
             const tokens = await loadTokens(configPath);
 
             if (validateOnly) {
@@ -66,74 +58,35 @@ cli
                 process.exit(0);
             }
 
-            // Resolve refs
             const resolved = resolveRefs(tokens);
 
-            // Generate output
-            const primevueCode = generatePrimeVue(resolved);
-            const unoCSSCode = generateUnoCSS(resolved);
+            const presetCode = generatePreset(resolved);
+            const unoThemeCode = generateUnoTheme(resolved);
             const shortcutsCode = generateShortcuts(resolved);
-            const ptCode = generatePrimeVuePT(resolved);
-            const baseCssCode = generatePrimeVueBaseCss(resolved);
-            const baseCssName = options.primevueBaseCss as string;
 
             if (dryRun) {
-                console.log(`\n// === ${options.primevue} ===\n`);
-                console.log(primevueCode);
-                console.log(`\n// === ${options.unocss} ===\n`);
-                console.log(unoCSSCode);
-                console.log(`\n// === ${options.shortcuts} ===\n`);
+                console.log(`\n// === ${presetName} ===\n`);
+                console.log(presetCode);
+                console.log(`\n// === ${unoThemeName} ===\n`);
+                console.log(unoThemeCode);
+                console.log(`\n// === ${shortcutsName} ===\n`);
                 console.log(shortcutsCode);
-                console.log(`\n// === ${options.pt} ===\n`);
-                console.log(ptCode);
-                if (baseCssCode) {
-                    console.log(`\n/* === ${baseCssName} === */\n`);
-                    console.log(baseCssCode);
-                }
                 return;
             }
 
-            // Write files
             const results = [
                 {
-                    name: options.primevue as string,
-                    written: writeOutput(
-                        outDir,
-                        options.primevue as string,
-                        primevueCode,
-                        force,
-                    ),
+                    name: presetName,
+                    written: writeOutput(outDir, presetName, presetCode, force),
                 },
                 {
-                    name: options.unocss as string,
-                    written: writeOutput(
-                        outDir,
-                        options.unocss as string,
-                        unoCSSCode,
-                        force,
-                    ),
+                    name: unoThemeName,
+                    written: writeOutput(outDir, unoThemeName, unoThemeCode, force),
                 },
                 {
-                    name: options.shortcuts as string,
-                    written: writeOutput(
-                        outDir,
-                        options.shortcuts as string,
-                        shortcutsCode,
-                        force,
-                    ),
+                    name: shortcutsName,
+                    written: writeOutput(outDir, shortcutsName, shortcutsCode, force),
                 },
-                {
-                    name: options.pt as string,
-                    written: writeOutput(outDir, options.pt as string, ptCode, force),
-                },
-                ...(baseCssCode
-                    ? [
-                        {
-                            name: baseCssName,
-                            written: writeOutput(outDir, baseCssName, baseCssCode, force),
-                        },
-                    ]
-                    : []),
             ];
 
             for (const r of results) {
@@ -146,7 +99,6 @@ cli
             console.log(`\nOutput written to ${outDir}`);
 
             if (watch) {
-                // TODO v0.2: Implement file watching with chokidar
                 console.log(
                     "\n⚠ Watch mode is not yet implemented (planned for v0.2).",
                 );
@@ -162,5 +114,5 @@ cli
     });
 
 cli.help();
-cli.version("0.1.0");
+cli.version("0.2.0");
 cli.parse();

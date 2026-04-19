@@ -8,9 +8,9 @@ import {
 } from "../src/builtin-palettes.js";
 import { resolveRefs } from "../src/resolver.js";
 import { validateTokens } from "../src/validator.js";
-import { generatePrimeVue } from "../src/generators/primevue.js";
-import { generateUnoCSS } from "../src/generators/unocss-theme.js";
-import type { AutoTokenSchema } from "../src/types.js";
+import { generatePreset } from "../src/generators/preset.js";
+import { generateUnoTheme } from "../src/generators/uno-theme.js";
+import type { ThemeUnifyConfig } from "../src/types.js";
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
@@ -69,13 +69,9 @@ describe("resolveScale", () => {
     });
 });
 
-function autoTokensWithBuiltin(): AutoTokenSchema {
+function tokensWithBuiltin(): ThemeUnifyConfig {
     return {
-        meta: {
-            name: "Builtin Test",
-            darkModeStrategy: "class",
-            darkModeSelector: ".dark",
-        },
+        meta: { name: "Builtin Test", darkModeSelector: ".dark" },
         primitive: {
             colors: {
                 oatmeal: {
@@ -94,105 +90,45 @@ function autoTokensWithBuiltin(): AutoTokenSchema {
             },
         },
         semantic: {
-            colors: {
-                primary: { scale: "purple" },
-                success: { scale: "emerald" },
-            },
-            surface: {
-                scale: "oatmeal",
-                invertInDarkMode: true,
-            },
+            primary: "purple",
+            surface: { scale: "oatmeal", darkScale: "slate" },
+            extra: { success: "emerald" },
         },
     };
 }
 
 describe("validator with builtin palettes", () => {
-    it("accepts builtin scale names in semantic.colors", () => {
-        const issues = validateTokens(autoTokensWithBuiltin());
-        expect(issues).toEqual([]);
+    it("accepts builtin scale names in semantic", () => {
+        expect(validateTokens(tokensWithBuiltin())).toEqual([]);
     });
 
-    it("accepts builtin scale name in semantic.surface", () => {
-        const tokens = autoTokensWithBuiltin();
-        tokens.semantic.surface = { scale: "slate", darkScale: "zinc" };
+    it("rejects unknown scale names", () => {
+        const tokens = tokensWithBuiltin();
+        tokens.semantic!.primary = "purpel";
         const issues = validateTokens(tokens);
-        expect(issues).toEqual([]);
-    });
-
-    it("rejects unknown scale names with helpful message", () => {
-        const tokens = autoTokensWithBuiltin();
-        tokens.semantic.colors!.primary = { scale: "purpel" };
-        const issues = validateTokens(tokens);
-        expect(issues.length).toBeGreaterThan(0);
-        expect(issues[0].path).toBe("semantic.colors.primary.scale");
-        expect(issues[0].message).toContain('Unknown color scale "purpel"');
+        expect(issues.some((i) => i.path === "semantic.primary")).toBe(true);
         expect(issues[0].message).toContain("purple");
     });
+});
 
-    it("rejects unknown surface scale", () => {
-        const tokens = autoTokensWithBuiltin();
-        tokens.semantic.surface = { scale: "moonbeam" };
-        const issues = validateTokens(tokens);
-        expect(issues.some((i) => i.path === "semantic.surface.scale")).toBe(true);
+describe("generatePreset with builtin palettes", () => {
+    it("emits semantic.primary as references to the builtin scale", () => {
+        const resolved = resolveRefs(tokensWithBuiltin());
+        const output = generatePreset(resolved);
+        // semantic.primary should reference {purple.500}
+        expect(output).toContain("{purple.500}");
+        // semantic.colorScheme.dark.surface should reference {slate.X}
+        expect(output).toContain("{slate.500}");
     });
 });
 
-describe("resolver with builtin palettes", () => {
-    it("resolves refs into builtin palette steps", () => {
-        const tokens: AutoTokenSchema = {
-            ...autoTokensWithBuiltin(),
-            primevue: {
-                base: "aura",
-                overrides: {
-                    focusRing: { color: { ref: "colors.purple.500" } },
-                },
-            },
-        };
-        const resolved = resolveRefs(tokens);
-        expect(resolved.primevue?.overrides?.focusRing?.color).toBe(
-            BUILTIN_PALETTES.purple[500],
-        );
-    });
-});
-
-describe("generatePrimeVue with builtin palettes", () => {
-    it("emits builtin purple as primary color scale", () => {
-        const resolved = resolveRefs(autoTokensWithBuiltin());
-        const output = generatePrimeVue(resolved);
-        expect(output).toContain(`'500': '${BUILTIN_PALETTES.purple[500]}'`);
-        expect(output).toContain(`'50': '${BUILTIN_PALETTES.purple[50]}'`);
-    });
-});
-
-describe("generateUnoCSS with builtin palettes", () => {
-    it("emits referenced builtin palettes into the colors export", () => {
-        const resolved = resolveRefs(autoTokensWithBuiltin());
-        const output = generateUnoCSS(resolved);
-        expect(output).toContain("purple");
-        expect(output).toContain(BUILTIN_PALETTES.purple[500]);
-        expect(output).toContain("emerald");
-        expect(output).toContain(BUILTIN_PALETTES.emerald[500]);
-    });
-
-    it("does not emit unreferenced builtin palettes", () => {
-        const resolved = resolveRefs(autoTokensWithBuiltin());
-        const output = generateUnoCSS(resolved);
-        // fuchsia is not referenced anywhere, so its hex should not appear
-        expect(output).not.toContain(BUILTIN_PALETTES.fuchsia[500]);
-    });
-
-    it("user-defined scale shadows the builtin in emitted output", () => {
-        const tokens = autoTokensWithBuiltin();
-        tokens.primitive.colors.purple = {
-            ...BUILTIN_PALETTES.purple,
-            500: "#abcdef",
-        };
-        _resetCollisionWarnings();
-        const warn = vi.spyOn(console, "warn").mockImplementation(() => { });
-        const resolved = resolveRefs(tokens);
-        const output = generateUnoCSS(resolved);
-        expect(output).toContain("#abcdef");
-        expect(output).not.toContain(BUILTIN_PALETTES.purple[500]);
-        warn.mockRestore();
+describe("generateUnoTheme with builtin palettes", () => {
+    it("emits referenced builtin palettes as var(--p-*) entries", () => {
+        const resolved = resolveRefs(tokensWithBuiltin());
+        const output = generateUnoTheme(resolved);
+        expect(output).toMatch(/purple:\s*\{/);
+        expect(output).toContain("var(--p-purple-500)");
+        expect(output).toMatch(/emerald:\s*\{/);
+        expect(output).toContain("var(--p-emerald-500)");
     });
 });

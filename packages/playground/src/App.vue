@@ -131,6 +131,53 @@ function toggleDark() {
     document.documentElement.classList.toggle('dark', isDark.value)
 }
 
+// --- Brand switch demo ---
+// Demonstrates that updating PrimeVue's primary scale at runtime cascades
+// to UnoCSS utilities, which read `var(--p-primary-*)` from the preset.
+import { updatePreset } from '@primeuix/themes'
+const brandOptions = [
+    { label: 'Blueberry', value: 'blueberry' },
+    { label: 'Beetroot', value: 'beetroot' },
+    { label: 'Kale', value: 'kale' },
+    { label: 'Carrot', value: 'carrot' },
+    { label: 'Eggplant', value: 'eggplant' },
+]
+const activeBrand = ref<string>('blueberry')
+function scaleRefs(scale: string) {
+    return Object.fromEntries(
+        [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950].map((s) => [s, `{${scale}.${s}}`]),
+    )
+}
+function applyBrand() {
+    updatePreset({ semantic: { primary: scaleRefs(activeBrand.value) } })
+}
+
+// --- Surface switch demo ---
+// Surface is split per colorScheme — light/dark each get their own scale.
+// Updating these repaints chrome (page bg, panels, borders) for PrimeVue
+// components and any UnoCSS utilities reading `var(--p-surface-*)`.
+const surfaceOptions = [
+    { label: 'Kale', value: 'kale' },
+    { label: 'Chickpea', value: 'chickpea' },
+    { label: 'Oatmeal', value: 'oatmeal' },
+    { label: 'Blueberry', value: 'blueberry' },
+    { label: 'Beetroot', value: 'beetroot' },
+    { label: 'Eggplant', value: 'eggplant' },
+    { label: 'Carrot', value: 'carrot' },
+]
+const activeSurfaceLight = ref<string>('kale')
+const activeSurfaceDark = ref<string>('chickpea')
+function applySurface() {
+    updatePreset({
+        semantic: {
+            colorScheme: {
+                light: { surface: scaleRefs(activeSurfaceLight.value) },
+                dark: { surface: scaleRefs(activeSurfaceDark.value) },
+            },
+        },
+    })
+}
+
 interface Product {
     name: string
     price: number
@@ -542,6 +589,16 @@ const blockUIActive = ref(false)
                 </h1>
                 <div class="flex items-center gap-3">
                     <Tag value="PrimeVue 4" severity="info" />
+                    <Select v-model="activeBrand" :options="brandOptions" optionLabel="label" optionValue="value"
+                        @change="applyBrand" placeholder="Brand" size="small" class="w-36"
+                        v-tooltip.bottom="'Live-swap the PrimeVue primary scale — UnoCSS bg-primary-* utilities follow automatically.'" />
+                    <Select v-model="activeSurfaceLight" :options="surfaceOptions" optionLabel="label"
+                        optionValue="value" @change="applySurface" placeholder="Surface" size="small" class="w-36"
+                        v-tooltip.bottom="'Live-swap the light surface scale — repaints page chrome via var(--p-surface-*).'" />
+                    <Select v-model="activeSurfaceDark" :options="surfaceOptions" optionLabel="label"
+                        optionValue="value" @change="applySurface" placeholder="Surface (dark)" size="small"
+                        class="w-36"
+                        v-tooltip.bottom="'Live-swap the dark surface scale — applies when the .dark class is active.'" />
                     <Button :icon="isDark ? 'i-prime-sun' : 'i-prime-moon'" :label="isDark ? 'Light' : 'Dark'"
                         @click="toggleDark" severity="secondary" size="small" />
                 </div>

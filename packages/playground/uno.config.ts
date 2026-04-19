@@ -1,16 +1,18 @@
 import { defineConfig, presetUno, presetIcons } from "unocss";
 import {
     colors,
+    spacing,
     borderRadius,
     boxShadow,
     fontFamily,
     fontSize,
     lineHeight,
     fontWeight,
-} from "./src/generated/unocss-theme";
-import { shortcuts } from "./src/generated/unocss-shortcuts";
+} from "./src/generated/uno-theme";
+import { shortcuts } from "./src/generated/shortcuts";
 
-// Generate safelist for dynamically-constructed classes (bg/text/border-{color}-{step})
+// Safelist dynamically-constructed `bg/text/border-{color}-{step}` classes for
+// every palette name we emit (user palettes + semantic roles + surface).
 const colorSteps = [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
 const safelist = Object.keys(colors).flatMap((color) =>
     colorSteps.flatMap((step) => [
@@ -26,11 +28,24 @@ const safelist = Object.keys(colors).flatMap((color) =>
 
 export default defineConfig({
     safelist,
-    content: {
-        filesystem: ["src/generated/primevue-pt.ts"],
+    theme: {
+        colors,
+        spacing,
+        borderRadius,
+        boxShadow,
+        fontFamily,
+        fontSize,
+        lineHeight,
+        fontWeight,
     },
-    theme: { colors, borderRadius, boxShadow, fontFamily, fontSize, lineHeight, fontWeight },
     shortcuts,
+    // CSS layer ordering must match the PrimeVue `cssLayer.order` in main.ts
+    // so utility classes always override component defaults.
+    layers: {
+        unbase: -10,
+        primevue: 0,
+        unutilities: 10,
+    },
     presets: [
         presetUno(),
         presetIcons({

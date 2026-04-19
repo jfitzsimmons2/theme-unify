@@ -14,28 +14,27 @@ pnpm test                                # all packages (currently just core)
 Run a single file:
 
 ```bash
-pnpm --filter theme-unify exec vitest run tests/generators/primevue-pt.test.ts
+pnpm --filter theme-unify exec vitest run tests/generators/preset.test.ts
 ```
 
 ## Layout
 
 ```
 packages/core/tests/
+  builtin-palettes.test.ts
   resolver.test.ts
   validator.test.ts
   fixtures/
     tokens.fixture.ts        # shared validTokens used by every generator test
   generators/
-    primevue.test.ts
-    primevue-pt.test.ts
-    unocss-theme.test.ts
-    unocss-shortcuts.test.ts
+    preset.test.ts
+    uno-theme.test.ts
 ```
 
 ## Fixture pattern
 
 [tokens.fixture.ts](../packages/core/tests/fixtures/tokens.fixture.ts)
-exports a single `validTokens: TokenSchema` covering every section of the
+exports a `validTokens: ThemeUnifyConfig` covering every section of the
 schema. Use it as the default input for new generator tests:
 
 ```ts
@@ -46,18 +45,20 @@ const resolved = resolveRefs(validTokens);
 ```
 
 Add narrow fixtures only when a test needs a specific edge case
-(e.g. missing color step, circular ref) — in that case keep them inline in
-the test file rather than polluting the shared fixture.
+(e.g. missing color step, circular ref) — in that case keep them inline
+in the test file rather than polluting the shared fixture.
 
 ## Assertion style
 
 Prefer **structural assertions** over snapshots:
 
-- ✅ `expect(code).toContain("primary: { 50: '#FDF2F4'")`
+- ✅ `expect(code).toMatch(/primary:\s*\{/)` — note `serializeObject`
+  emits unquoted keys for valid identifiers, so don't write
+  `'primary':`.
 - ✅ Re-`eval`/parse the emitted code and assert against the resulting
-  object (when feasible)
+  object (when feasible).
 - ❌ `expect(code).toMatchSnapshot()` for color-rich output — snapshots
-  churn on every primitive update and provide little signal
+  churn on every primitive update and provide little signal.
 
 Snapshots are fine for stable, format-only output (e.g. file headers).
 
@@ -71,14 +72,15 @@ For a new generator, at minimum:
 
 1. The output starts with the standard `fileHeader()`.
 2. Every named export the public API promises is present.
-3. A representative token from each `semantic` role appears in the output
-   with its resolved value (not the ref).
+3. A representative token from each `semantic` role appears in the
+   output with its resolved value (or, for `uno-theme`, the matching
+   `var(--p-*)` reference — never a raw hex).
 4. Dark-mode-specific output (if any) is present and distinct from light.
-5. Overrides from the user config win over auto-derived defaults.
+5. Overrides from `preset.overrides` win over auto-derived defaults.
 
 ## What not to test here
 
-- The CLI's process behavior (exit codes, IO) — no e2e harness yet. Manual
-  verification via the playground is the current safety net.
+- The CLI's process behavior (exit codes, IO) — no e2e harness yet.
+  Manual verification via the playground is the current safety net.
 - The Vite plugin — it's a placeholder; tests will land with the
-  implementation in v0.2.
+  implementation.
