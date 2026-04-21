@@ -70,7 +70,8 @@ See [adding-a-generator.md](adding-a-generator.md#4-add-a-test).
 
 For a new generator, at minimum:
 
-1. The output starts with the standard `fileHeader()`.
+1. The output starts with the standard `fileHeader({ meta })` — version
+   line plus optional `theme: "<name>"`.
 2. Every named export the public API promises is present.
 3. A representative token from each `semantic` role appears in the
    output with its resolved value (or, for `uno-theme`, the matching

@@ -9,7 +9,11 @@
 4. `pnpm test` — must pass.
 5. `pnpm generate` — regenerate the playground outputs and commit any
    changes alongside your source changes.
-6. Open a PR with a short description of the user-visible effect.
+6. If your change is user-visible (anything that affects the public API,
+   CLI, generator output, or runtime behavior), run `pnpm changeset` and
+   commit the generated `.changeset/*.md` file. See
+   [release.md](release.md#adding-a-changeset-per-pr) for what counts.
+7. Open a PR with a short description of the user-visible effect.
 
 ## Code style
 
@@ -77,6 +81,7 @@ Keep commits focused — one logical change per commit.
 | New schema field | [token-schema.md](token-schema.md), [README](../README.md) |
 | Pipeline change | [pipeline.md](pipeline.md), maybe [architecture.md](architecture.md) |
 | Build / publish change | [release.md](release.md) |
+| Release process / CI | [release.md](release.md), `.changeset/README.md` |
 | Major migration | Add a planning doc at the repo root (mirror [UNSTYLED-PLAN.md](../UNSTYLED-PLAN.md)) and reference it from [docs/README.md](README.md) |
 
 ## Things that don't need a doc

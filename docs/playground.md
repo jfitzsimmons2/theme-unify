@@ -1,10 +1,34 @@
 # Playground
 
 The playground ([packages/playground](../packages/playground)) is a Vue 3
-app that serves as a **visual smoke test** for the generators — a wide
-range of PrimeVue components is rendered in
-[src/App.vue](../packages/playground/src/App.vue), along with a
-dark-mode toggle, a brand-switch demo, and a palette viewer.
++ Vue Router app that serves as a **visual smoke test** for the generators.
+A wide range of PrimeVue components is rendered across 11 route-based pages,
+with a persistent header containing a PrimeVue Menubar navbar, dark-mode
+toggle, brand/surface-switch demos, and a palette viewer.
+
+### Architecture
+
+The app uses Vue Router (`createWebHashHistory`) with lazy-loaded page
+components under [src/pages/](../packages/playground/src/pages/):
+
+| Route | Page component | Showcases |
+|-------|----------------|-----------|
+| `/buttons` | `ButtonsPage.vue` | Button severities, variants, SplitButton, SpeedDial |
+| `/forms` | `FormsPage.vue` | All form input components |
+| `/data` | `DataPage.vue` | DataTable, DataView, Tree, TreeTable, OrgChart, etc. |
+| `/panels` | `PanelsPage.vue` | Accordion, Tabs, Stepper, Panel, Splitter, etc. |
+| `/overlays` | `OverlaysPage.vue` | Dialog, Drawer, ConfirmDialog/Popup, Popover |
+| `/menus` | `MenusPage.vue` | Menubar, Breadcrumb, TieredMenu, ContextMenu, etc. |
+| `/messages` | `MessagesPage.vue` | Message severities, Toast |
+| `/media` | `MediaPage.vue` | Image, Galleria, Carousel, ImageCompare |
+| `/misc` | `MiscPage.vue` | Avatar, Badge, Tag, Chip, Skeleton, BlockUI, etc. |
+| `/unocss` | `UnocssPage.vue` | UnoCSS theme utilities, animations, color aliases |
+| `/palette` | `PalettePage.vue` | Custom & builtin palette swatches |
+
+[App.vue](../packages/playground/src/App.vue) is a thin layout shell
+containing the sticky Menubar header (brand/surface selects, dark toggle)
+and a `<router-view>`. Global overlays (`Toast`, `ConfirmDialog`,
+`ConfirmPopup`, `ScrollTop`) live here.
 
 It depends on the `theme-unify` package via `workspace:*`.
 
@@ -37,6 +61,9 @@ Live in [src/generated/](../packages/playground/src/generated):
   `var(--p-*)` references so utility classes follow runtime preset
   changes.
 - `shortcuts.ts` — also imported by `uno.config.ts`.
+- `palettes.ts` — color palette catalog (custom + builtin hex values).
+  The Palette page reads from this file to render every
+  available swatch instead of hardcoding palette names.
 
 These are produced by `pnpm generate` (which runs the CLI). They are
 checked in for convenience but should always match what the current CLI

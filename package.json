@@ -1,12 +1,21 @@
 {
-  "name": "@theme-unify/root",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "dev": "pnpm --filter @theme-unify/playground dev",
-    "generate": "pnpm --filter @theme-unify/playground generate"
-  }
+    "name": "@theme-unify/root",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "scripts": {
+        "build": "pnpm -r build",
+        "test": "pnpm -r test",
+        "dev": "pnpm --filter @theme-unify/playground dev",
+        "generate": "pnpm --filter @theme-unify/playground generate",
+        "changeset": "changeset",
+        "version": "changeset version",
+        "release": "pnpm --filter theme-unify build && changeset publish",
+        "release:dev": "pnpm --filter theme-unify build && changeset publish --tag dev",
+        "snapshot:dev": "changeset version --snapshot dev"
+    },
+    "devDependencies": {
+        "@changesets/changelog-github": "^0.6.0",
+        "@changesets/cli": "^2.31.0"
+    }
 }

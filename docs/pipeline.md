@@ -39,7 +39,15 @@ Collects all issues into a `ValidationIssue[]`, then throws a single
 - Every `SemanticScaleRef` string names either a key in
   `primitive.colors` or a builtin palette.
 - `preset.base` (if present) is in `PRIMEVUE_BASE_THEMES`.
-- All ref paths inside `preset.overrides` resolve.
+- `primitive.spacing` / `radii` / `shadows` values look like CSS.
+- `primitive.breakpoints` values are `px`/`rem`/`em` lengths.
+- `primitive.zIndex` values are integers or `"auto"`.
+- `primitive.transitions.{property,duration,timingFunction}` values are
+  non-empty strings.
+- `primitive.animations` values are non-empty CSS shorthand strings.
+- All ref paths inside `preset.overrides` resolve (alias prefixes
+  include `colors`, `spacing`, `radii`, `shadows`, `typography`,
+  `fontWeight`, `breakpoints`, `zIndex`, `transitions`, `animations`).
 
 ## 3. `resolveRefs(tokens)`
 

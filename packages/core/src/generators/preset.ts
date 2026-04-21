@@ -5,7 +5,7 @@ import type {
     PrimitiveConfig,
 } from "../types.js";
 import { COLOR_STEPS } from "../types.js";
-import { fileHeader, serializeValue } from "./utils.js";
+import { fileHeader, serializeValue, canonicalizeSemanticRole } from "./utils.js";
 import { resolveScale } from "../builtin-palettes.js";
 
 const BASE_THEME_IMPORTS: Record<string, string> = {
@@ -26,6 +26,12 @@ const BASE_THEME_NAMES: Record<string, string> = {
  * Generate the source for `definePreset(Base, { ... })`. PrimeVue is the
  * runtime source of truth: every token here will be emitted as a `--p-*`
  * CSS variable consumed by both PrimeVue components and UnoCSS utilities.
+ *
+ * The generated file also exports `themeOptions` — an object suitable for
+ * spreading into PrimeVue's `app.use(PrimeVue, { theme: { options } })`.
+ * It wires `darkModeSelector` to either the user's selector (class
+ * strategy) or `".system"` (media strategy, PrimeVue's sentinel for
+ * `prefers-color-scheme`).
  */
 export function generatePreset(resolved: ResolvedTokens): string {
     const base = resolved.preset?.base ?? "aura";
@@ -33,13 +39,16 @@ export function generatePreset(resolved: ResolvedTokens): string {
     const baseName = BASE_THEME_NAMES[base];
 
     const presetObj = buildPresetObject(resolved);
+    const optionsObj = buildThemeOptions(resolved);
 
     return [
-        fileHeader(),
+        fileHeader({ meta: resolved.meta }),
         `import { definePreset } from '@primeuix/themes';`,
         `import ${baseName} from '${importPath}';`,
         "",
         `export const GeneratedPreset = definePreset(${baseName}, ${serializeValue(presetObj, 0)});`,
+        "",
+        `export const themeOptions = ${serializeValue(optionsObj, 0)} as const;`,
         "",
     ].join("\n");
 }
@@ -93,7 +102,11 @@ export function buildPresetObject(resolved: ResolvedTokens): Record<string, unkn
 
     if (resolved.semantic?.extra) {
         for (const [role, ref] of Object.entries(resolved.semantic.extra)) {
-            semantic[role] = scaleRefToReferenceObject(ref, resolved.primitive);
+            // Canonicalize legacy role names (warning → warn, error → danger)
+            // so the generated preset always uses PrimeVue's severity
+            // vocabulary, regardless of which spelling appeared in source.
+            const canonical = canonicalizeSemanticRole(role);
+            semantic[canonical] = scaleRefToReferenceObject(ref, resolved.primitive);
         }
     }
 
@@ -118,6 +131,16 @@ export function buildPresetObject(resolved: ResolvedTokens): Record<string, unkn
         colorScheme["light"]["surface"] = lightSurface;
         colorScheme["dark"]["surface"] = darkSurface;
         semantic["colorScheme"] = colorScheme;
+    }
+
+    // ----- semantic.zIndex (drives PrimeVue overlay stacking + mirrors
+    // the UnoCSS `zIndex` export so utilities and components stay in
+    // sync). Emitting all user keys is safe — PrimeVue treats unknown
+    // semantic keys as inert. PrimeVue's runtime overlay stacking is
+    // also configurable via `app.use(PrimeVue, { zIndex: { ... } })`;
+    // consumers can derive that object from the same primitive block.
+    if (resolved.primitive.zIndex) {
+        semantic["zIndex"] = { ...resolved.primitive.zIndex };
     }
 
     if (Object.keys(primitive).length > 0) result["primitive"] = primitive;
@@ -248,4 +271,20 @@ export function resolveSemanticScale(
 ): ColorScale | undefined {
     if (typeof ref === "string") return resolveScale(ref, prim);
     return ref;
+}
+
+/**
+ * Build a PrimeVue `theme.options` object that wires `darkModeSelector`
+ * based on the configured {@link MetaConfig.darkModeStrategy}.
+ *
+ * - `"class"` → `{ darkModeSelector: meta.darkModeSelector }` (default `.dark`)
+ * - `"media"` → `{ darkModeSelector: ".system" }` (PrimeVue's sentinel
+ *   for `prefers-color-scheme`)
+ */
+export function buildThemeOptions(resolved: ResolvedTokens): Record<string, unknown> {
+    const strategy = resolved.meta.darkModeStrategy ?? "class";
+    if (strategy === "media") {
+        return { darkModeSelector: ".system" };
+    }
+    return { darkModeSelector: resolved.meta.darkModeSelector ?? ".dark" };
 }

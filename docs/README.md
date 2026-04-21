@@ -1,7 +1,13 @@
-# Contributor docs
+# Documentation
 
-These docs are for **developers contributing to theme-unify**. End-user
-usage lives in the root [README](../README.md).
+Two audiences:
+
+- **Consuming the library** in your app? Start with the
+  [consumer guide](consumer-guide.md) and the root
+  [README](../README.md). The [token-schema](token-schema.md) and
+  [CLI](cli.md) references cover every surface.
+- **Contributing to theme-unify itself?** The pages below cover the
+  internals.
 
 ## Where to start
 
@@ -15,6 +21,7 @@ usage lives in the root [README](../README.md).
 
 | Doc | Topic |
 | --- | --- |
+| [consumer-guide.md](consumer-guide.md) | Recipes for app developers — install, wire-up, runtime swap, troubleshooting |
 | [getting-started.md](getting-started.md) | Prerequisites, install, common scripts, troubleshooting |
 | [architecture.md](architecture.md) | Monorepo layout, modules, public API surface, runtime-source-of-truth model |
 | [token-schema.md](token-schema.md) | `ThemeUnifyConfig`, semantic refs, color scales, builtin palettes |
@@ -26,7 +33,7 @@ usage lives in the root [README](../README.md).
 | [playground.md](playground.md) | Visual smoke test app |
 | [testing.md](testing.md) | Vitest setup, fixtures, adding tests |
 | [contributing.md](contributing.md) | Workflow, code style, public-API stability |
-| [release.md](release.md) | Versioning, build output, publish checklist |
+| [release.md](release.md) | Versioning, Changesets workflow, branch-based publish automation |
 
 ## Historical references
 

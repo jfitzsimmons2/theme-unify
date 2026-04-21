@@ -2,11 +2,17 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * Write content to a file, but only if the content has changed.
- * Creates the directory if it doesn't exist.
+ * Write `content` to `outDir/filename`, creating the directory if
+ * needed. By default the write is a no-op when the existing file is
+ * byte-identical — this prevents spurious HMR / file-watcher triggers
+ * when generators run on every save.
  *
- * When `force` is true, the file is always written even when its contents
- * are byte-identical (useful for forcing HMR or clobbering hand-edits).
+ * @param outDir   Output directory (created recursively if missing).
+ * @param filename Bare filename, joined to `outDir`.
+ * @param content  File contents (UTF-8).
+ * @param force    When `true`, write even when content is unchanged.
+ * @returns `true` if the file was actually written, `false` if skipped
+ *   because the content was identical.
  */
 export function writeOutput(
     outDir: string,

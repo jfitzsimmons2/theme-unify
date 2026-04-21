@@ -1,44 +1,78 @@
 {
-  "name": "theme-unify",
-  "version": "0.1.0",
-  "type": "module",
-  "description": "Compile a single token definition into PrimeVue 4 theme presets and UnoCSS theme configs",
-  "license": "MIT",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+    "name": "theme-unify",
+    "version": "0.3.0",
+    "type": "module",
+    "description": "Compile a single token definition into PrimeVue 4 theme presets and UnoCSS theme configs",
+    "license": "MIT",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs"
+        },
+        "./vite": {
+            "types": "./dist/vite.d.ts",
+            "import": "./dist/vite.js",
+            "require": "./dist/vite.cjs"
+        },
+        "./typed": {
+            "types": "./dist/typed.d.ts",
+            "import": "./dist/typed.js",
+            "require": "./dist/typed.cjs"
+        },
+        "./aura": {
+            "types": "./dist/typed-aura.d.ts",
+            "import": "./dist/typed-aura.js",
+            "require": "./dist/typed-aura.cjs"
+        },
+        "./lara": {
+            "types": "./dist/typed-lara.d.ts",
+            "import": "./dist/typed-lara.js",
+            "require": "./dist/typed-lara.cjs"
+        },
+        "./nora": {
+            "types": "./dist/typed-nora.d.ts",
+            "import": "./dist/typed-nora.js",
+            "require": "./dist/typed-nora.cjs"
+        },
+        "./material": {
+            "types": "./dist/typed-material.d.ts",
+            "import": "./dist/typed-material.js",
+            "require": "./dist/typed-material.cjs"
+        }
     },
-    "./vite": {
-      "types": "./dist/vite.d.ts",
-      "import": "./dist/vite.js",
-      "require": "./dist/vite.cjs"
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "bin": {
+        "theme-unify": "./dist/cli.js"
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "dependencies": {
+        "cac": "^6.7.14",
+        "jiti": "^2.4.2"
+    },
+    "peerDependencies": {
+        "@primeuix/themes": "^2.0.0"
+    },
+    "peerDependenciesMeta": {
+        "@primeuix/themes": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "@primeuix/themes": "^2.0.3",
+        "@types/node": "^24.12.0",
+        "tsup": "^8.4.0",
+        "typescript": "~5.9.3",
+        "vitest": "^3.1.1"
     }
-  },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "bin": {
-    "theme-unify": "./dist/cli.js"
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "dependencies": {
-    "cac": "^6.7.14",
-    "jiti": "^2.4.2"
-  },
-  "devDependencies": {
-    "@types/node": "^24.12.0",
-    "tsup": "^8.4.0",
-    "typescript": "~5.9.3",
-    "vitest": "^3.1.1"
-  }
 }

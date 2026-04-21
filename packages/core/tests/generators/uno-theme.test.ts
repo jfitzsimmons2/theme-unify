@@ -6,6 +6,20 @@ import { validTokens } from "../fixtures/tokens.fixture.js";
 describe("generateUnoTheme", () => {
     const out = generateUnoTheme(resolveRefs(validTokens));
 
+    it("emits darkMode as 'class' when strategy is class (default)", () => {
+        expect(out).toContain("export const darkMode = 'class'");
+    });
+
+    it("emits darkMode as 'media' when strategy is media", () => {
+        const mediaOut = generateUnoTheme(
+            resolveRefs({
+                meta: { name: "M", darkModeStrategy: "media" },
+                primitive: { colors: {} },
+            }),
+        );
+        expect(mediaOut).toContain("export const darkMode = 'media'");
+    });
+
     it("emits each user palette as var(--p-{name}-{step}) entries", () => {
         expect(out).toMatch(/beetroot:\s*\{/);
         expect(out).toContain("var(--p-beetroot-500)");
@@ -17,7 +31,7 @@ describe("generateUnoTheme", () => {
         expect(out).toContain("var(--p-primary-500)");
         expect(out).toMatch(/success:\s*\{/);
         expect(out).toContain("var(--p-success-500)");
-        expect(out).toMatch(/warning:\s*\{/);
+        expect(out).toMatch(/warn:\s*\{/);
     });
 
     it("emits surface scale with `0` index", () => {
@@ -59,5 +73,49 @@ describe("generateUnoTheme", () => {
         // user hex from primitive shouldn't appear in uno-theme output
         expect(out).not.toContain("#D02B4B");
         expect(out).not.toContain("#9A8568");
+    });
+
+    it("emits breakpoints / zIndex / transitions / animation when present", () => {
+        expect(out).toContain("export const breakpoints");
+        expect(out).toMatch(/md:\s*['"]768px['"]/);
+        expect(out).toContain("export const zIndex");
+        expect(out).toMatch(/modal:\s*['"]1200['"]/);
+        expect(out).toContain("export const transitionProperty");
+        expect(out).toContain("export const transitionDuration");
+        expect(out).toMatch(/base:\s*['"]200ms['"]/);
+        expect(out).toContain("export const transitionTimingFunction");
+        expect(out).toContain("cubic-bezier(0.2, 0, 0, 1)");
+        expect(out).toContain("export const animation");
+        expect(out).toMatch(/['"]fade-in['"]/);
+    });
+
+    it("omits breakpoints / zIndex / transitions / animation when absent", () => {
+        const minimal = generateUnoTheme(
+            resolveRefs({
+                meta: { name: "M" },
+                primitive: { colors: {} },
+            }),
+        );
+        expect(minimal).not.toContain("export const breakpoints");
+        expect(minimal).not.toContain("export const zIndex");
+        expect(minimal).not.toContain("export const transitionProperty");
+        expect(minimal).not.toContain("export const transitionDuration");
+        expect(minimal).not.toContain("export const transitionTimingFunction");
+        expect(minimal).not.toContain("export const animation");
+    });
+
+    it("emits each transition sub-bag independently", () => {
+        const onlyDuration = generateUnoTheme(
+            resolveRefs({
+                meta: { name: "M" },
+                primitive: {
+                    colors: {},
+                    transitions: { duration: { base: "200ms" } },
+                },
+            }),
+        );
+        expect(onlyDuration).toContain("export const transitionDuration");
+        expect(onlyDuration).not.toContain("export const transitionProperty");
+        expect(onlyDuration).not.toContain("export const transitionTimingFunction");
     });
 });

@@ -15,7 +15,8 @@
     "dependencies": {
         "@primeuix/themes": "^2.0.3",
         "primevue": "^4.5.4",
-        "vue": "^3.5.30"
+        "vue": "^3.5.30",
+        "vue-router": "^5.0.4"
     },
     "devDependencies": {
         "@iconify-json/prime": "^1.2.4",

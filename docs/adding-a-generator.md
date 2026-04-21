@@ -23,7 +23,7 @@ export function generateTailwind(
 ): string {
   const obj = buildTailwindObject(resolved);
   return (
-    fileHeader() +
+    fileHeader({ meta: resolved.meta }) +
     `export const tailwindTheme = ${serializeObject(obj)} as const;\n`
   );
 }

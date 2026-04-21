@@ -13,7 +13,11 @@ emits at runtime.
 
 ```ts
 interface ThemeUnifyConfig {
-  meta: { name: string; darkModeSelector?: string };
+  meta: {
+    name: string;
+    darkModeStrategy?: "class" | "media";
+    darkModeSelector?: string;
+  };
   primitive: PrimitiveConfig;
   semantic: SemanticConfig;
   preset?: { base?: PrimeVueBaseTheme; overrides?: DeepTokenValue<AuraPreset> };
@@ -21,8 +25,26 @@ interface ThemeUnifyConfig {
 }
 ```
 
-`darkModeSelector` defaults to `.dark` and is consumed by both PrimeVue
-(`theme.options.darkModeSelector`) and the UnoCSS shortcuts generator.
+### Dark mode
+
+`darkModeStrategy` controls how dark mode is activated at runtime:
+
+| Strategy | Behaviour | PrimeVue `darkModeSelector` | UnoCSS `dark` variant |
+| -------- | --------- | --------------------------- | --------------------- |
+| `"class"` (default) | A CSS class/attribute on a parent element toggles dark mode | `meta.darkModeSelector` (default `".dark"`) | `"class"` — reacts to the selector |
+| `"media"` | OS / browser `prefers-color-scheme: dark` drives dark mode | `".system"` (PrimeVue's sentinel) | `"media"` — reacts to the media query |
+
+When strategy is `"class"`, `darkModeSelector` defaults to `".dark"` and
+is consumed by both PrimeVue (`theme.options.darkModeSelector`) and the
+UnoCSS shortcuts generator. The validator rejects empty strings and
+obviously malformed selectors (unbalanced brackets, leading combinators);
+class (`.dark`), id (`#app.dark`), attribute (`[data-theme='dark']`),
+`:where()`/`:is()` wrappers, and descendant combinators are all accepted.
+
+When strategy is `"media"`, `darkModeSelector` is ignored (a warning is
+emitted if set). The generated PrimeVue preset receives `".system"` and
+the generated UnoCSS theme exports `darkMode = "media"` so UnoCSS
+activates the `dark:` variant via `prefers-color-scheme`.
 
 ## `primitive`
 
@@ -36,6 +58,10 @@ Raw token values. **No refs allowed inside `primitive`.**
 | `shadows` | `Record<string, string>` | Optional. Emitted as `--p-shadow-*`. |
 | `typography` | `{ fontFamily?, baseFontSize?, baseLineHeight? }` | Optional. Emitted as `--p-font-family`, `--p-font-size-base`, `--p-line-height-base`. |
 | `fontWeight` | `Record<string, string>` | Optional. Emitted as `--p-font-weight-*`. |
+| `breakpoints` | `Record<string, string>` | Optional. Each value must be a `px`/`rem`/`em` length. Drives UnoCSS `theme.breakpoints`; not propagated to PrimeVue. |
+| `zIndex` | `Record<string, string>` | Optional. Each value must be an integer or `"auto"`. Drives UnoCSS `theme.zIndex` **and** PrimeVue `semantic.zIndex` so overlay stacking stays in sync. |
+| `transitions` | `{ property?, duration?, timingFunction? }` | Optional. Each sub-record is `Record<string, string>` and maps to UnoCSS `theme.transitionProperty` / `theme.transitionDuration` / `theme.transitionTimingFunction`. UnoCSS-only. |
+| `animations` | `Record<string, string>` | Optional. Each value is a CSS `animation` shorthand. Drives UnoCSS `theme.animation`. Author-supplied `@keyframes` declarations are still required. |
 
 ```ts
 type ColorStep = 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950;
@@ -58,7 +84,7 @@ provide a one-off scale without polluting `primitive.colors`.
 | --- | --- | --- |
 | `primary` | `SemanticScaleRef` | Becomes PrimeVue's `semantic.primary` (50–950 step refs). |
 | `surface` | `{ light: SemanticScaleRef; dark: SemanticScaleRef }` | Surface palette per color scheme. Step `0` is added automatically: `#ffffff` (light) / `#0a0a0a` (dark). |
-| `extra` | `Record<string, SemanticScaleRef>` | Free-form named roles such as `success`, `warning`, `info`, `danger`. Each emits a full 50–950 scale under `--p-{name}-*`. |
+| `extra` | `Record<string, SemanticScaleRef>` | Additional named roles. Use a [canonical role name](#canonical-semantic-roles) (`success`, `info`, `warn`, `danger`, …) so PrimeVue's `severity`-aware components react to it; non-canonical names are still emitted as `--p-{name}-*` but won't appear in `severity` props. |
 
 Example:
 
@@ -68,12 +94,40 @@ semantic: {
   surface: { light: "oatmeal", dark: "chickpea" },
   extra: {
     success: "kale",
-    warning: "carrot",
-    danger: "beetroot",
+    warn:    "carrot",
+    danger:  "beetroot",
     info:    "eggplant",
   },
 }
 ```
+
+### Canonical semantic roles
+
+These names match PrimeVue's `severity` vocabulary. Use them in
+`semantic.extra` to make a scale available to severity-aware
+components (`Button`, `Tag`, `Message`, `Toast`, …):
+
+| Role        | Notes                                                       |
+| ----------- | ----------------------------------------------------------- |
+| `primary`   | Brand color. Defined directly on `semantic.primary`.        |
+| `secondary` | Neutral / muted alternative.                                |
+| `success`   | Positive / confirmed state.                                 |
+| `info`      | Neutral informational accent.                               |
+| `warn`      | Caution. **Replaces the legacy `warning` alias.**           |
+| `danger`    | Destructive / error state. **Replaces the legacy `error`.** |
+| `help`      | Tertiary "fifth color" slot — use for an accent role.       |
+| `contrast`  | High-contrast / inverted color.                             |
+
+Non-canonical role names (e.g. `accent`) are accepted: the validator
+emits an info-severity issue and the generators emit
+`--p-accent-*` CSS variables, but `severity`-aware PrimeVue
+components ignore them.
+
+The legacy keys `warning` and `error` are accepted as **deprecated
+aliases** for `warn` and `danger`. Loading a config that uses them
+prints a deprecation warning to stderr; the generated preset and
+UnoCSS theme canonicalize them so the output always uses the
+canonical names. Migrate before the next major release.
 
 ## `preset`
 
@@ -84,8 +138,26 @@ Optional. Lets you reach the full Aura preset shape.
 | `base` | `"aura" \| "lara" \| "nora" \| "material"` | Defaults to `"aura"`. Drives the `definePreset` import in the generated file. |
 | `overrides` | `DeepTokenValue<AuraPreset>` | Deep-merged onto the generated preset. Refs (`{ ref: "radii.sm" }`) are resolved before merge. Use this for `semantic.focusRing`, `semantic.formField`, `components.*`, etc. |
 
-`overrides` is typed via the `AuraPreset` type from `@primeuix/themes` —
-your IDE will autocomplete every PrimeVue knob.
+Stock `defineTokens` from the bare `theme-unify` entry types
+`overrides` as `Record<string, unknown>` so the core package can stay
+free of any `@primeuix/themes` dependency. To get full IntelliSense,
+import `defineTokens` from the per-base sugar entry that matches your
+`preset.base`:
+
+```ts
+import { defineTokens } from "theme-unify/aura"; // or /lara, /nora, /material
+```
+
+For a custom preset, use the generic entry:
+
+```ts
+import { defineTypedTokens } from "theme-unify/typed";
+export default defineTypedTokens<MyPreset>({ /* ... */ });
+```
+
+`@primeuix/themes` is an **optional peer dependency** of
+`theme-unify` — install it only if you import one of the typed
+entries.
 
 ## `unocss.shortcuts`
 
@@ -113,6 +185,10 @@ literal or a ref:
 { ref: "spacing.md" }          // → primitive.spacing.md
 { ref: "shadows.lg" }          // → primitive.shadows.lg
 { ref: "fontWeight.bold" }     // → primitive.fontWeight.bold
+{ ref: "zIndex.modal" }        // → primitive.zIndex.modal
+{ ref: "breakpoints.md" }      // → primitive.breakpoints.md
+{ ref: "transitions.duration.base" } // → primitive.transitions.duration.base
+{ ref: "animations.fade-in" }  // → primitive.animations["fade-in"]
 ```
 
 The resolver expands these aliases — see
@@ -166,7 +242,8 @@ From [packages/core/src/index.ts](../packages/core/src/index.ts):
 
 ### Editor autocomplete
 
-The playground's `defineTypedTokens` helper widens scale-name fields
-with `BuiltinPaletteName | (string & {})` so editors suggest builtin
-names alongside user-defined keys. See
-[packages/playground/tokens.types.ts](../packages/playground/tokens.types.ts).
+The per-base typed entries (`theme-unify/aura`, `/lara`, `/nora`,
+`/material`) and the generic `theme-unify/typed` entry widen scale-name
+fields with `BuiltinPaletteName | (string & {})` so editors suggest
+builtin names alongside user-defined keys. See
+[packages/core/src/typed.ts](../packages/core/src/typed.ts).

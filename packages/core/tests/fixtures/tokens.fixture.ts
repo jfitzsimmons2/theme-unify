@@ -110,6 +110,29 @@ export const validTokens: ThemeUnifyConfig = {
             medium: "500",
             bold: "700",
         },
+
+        breakpoints: {
+            sm: "640px",
+            md: "768px",
+            lg: "1024px",
+        },
+
+        zIndex: {
+            base: "0",
+            overlay: "1100",
+            modal: "1200",
+            tooltip: "1400",
+        },
+
+        transitions: {
+            property: { all: "all" },
+            duration: { fast: "120ms", base: "200ms" },
+            timingFunction: { standard: "cubic-bezier(0.2, 0, 0, 1)" },
+        },
+
+        animations: {
+            "fade-in": "fade-in 200ms ease-out both",
+        },
     },
 
     semantic: {
@@ -120,7 +143,7 @@ export const validTokens: ThemeUnifyConfig = {
         },
         extra: {
             success: "kale",
-            warning: "carrot",
+            warn: "carrot",
         },
     },
 
@@ -168,6 +191,24 @@ export const validTokens: ThemeUnifyConfig = {
                 light: "border-surface-300",
                 dark: "dark:border-surface-700",
             },
+        },
+    },
+};
+
+/**
+ * Backwards-compatibility fixture using the deprecated `warning` /
+ * `error` role aliases. Validator should emit warning-severity issues
+ * for both, and generators should canonicalize them to `warn` /
+ * `danger` in the output.
+ */
+export const legacyTokensFixture: ThemeUnifyConfig = {
+    ...validTokens,
+    semantic: {
+        ...validTokens.semantic,
+        extra: {
+            success: "kale",
+            warning: "carrot",
+            error: "beetroot",
         },
     },
 };

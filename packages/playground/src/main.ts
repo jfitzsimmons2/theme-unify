@@ -6,6 +6,7 @@ import DialogService from "primevue/dialogservice";
 import Tooltip from "primevue/tooltip";
 import Ripple from "primevue/ripple";
 import { GeneratedPreset } from "./generated/preset";
+import router from "./router";
 import "virtual:uno.css";
 import "./style.css";
 import App from "./App.vue";
@@ -30,6 +31,7 @@ app.use(PrimeVue, {
 app.use(ToastService);
 app.use(ConfirmationService);
 app.use(DialogService);
+app.use(router);
 
 app.directive("tooltip", Tooltip);
 app.directive("ripple", Ripple);

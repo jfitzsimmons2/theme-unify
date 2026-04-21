@@ -1,0 +1,75 @@
+name: Release Dev
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: release-develop
+  cancel-in-progress: true
+
+jobs:
+  release-dev:
+    name: Publish snapshot to npm (dev)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Check for pending changesets
+        id: changeset_status
+        run: |
+          # `changeset status` exits non-zero when there are no changesets.
+          # We treat "no changesets" as a successful no-op for develop.
+          if pnpm changeset status --output=/tmp/changeset-status.json; then
+            count=$(node -e "const s=require('/tmp/changeset-status.json');console.log(s.changesets.length)")
+            echo "count=$count" >> "$GITHUB_OUTPUT"
+          else
+            echo "count=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Version snapshot (dev)
+        if: steps.changeset_status.outputs.count != '0'
+        # `--snapshot dev` produces versions like 0.4.0-dev-<timestamp>
+        # without consuming changeset files or committing anything.
+        run: pnpm changeset version --snapshot dev
+
+      - name: Publish to npm under `dev` dist-tag
+        if: steps.changeset_status.outputs.count != '0'
+        # `--no-git-tag` prevents tagging develop snapshots in git.
+        # `--snapshot` + `--tag dev` publishes under the `dev` dist-tag,
+        # so consumers must opt in via `npm i theme-unify@dev`.
+        run: pnpm changeset publish --no-git-tag --snapshot --tag dev
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: No changesets — skipping publish
+        if: steps.changeset_status.outputs.count == '0'
+        run: echo "No pending changesets on develop; nothing to publish."

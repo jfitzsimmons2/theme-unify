@@ -1,6 +1,6 @@
 import type { ResolvedTokens } from "../types.js";
 import { COLOR_STEPS } from "../types.js";
-import { fileHeader, serializeValue } from "./utils.js";
+import { fileHeader, serializeValue, canonicalizeSemanticRole } from "./utils.js";
 import { isBuiltinPalette } from "../builtin-palettes.js";
 
 /**
@@ -8,11 +8,22 @@ import { isBuiltinPalette } from "../builtin-palettes.js";
  * PrimeVue emits. Brand-color or surface edits to the PrimeVue preset
  * propagate to UnoCSS utilities at runtime — no rebuild required.
  *
- * Emitted exports: `colors`, `spacing`, `borderRadius`, `boxShadow`,
- * `fontFamily`, `fontSize`, `lineHeight`, `fontWeight`.
+ * Emitted exports: `darkMode`, `colors`, `spacing`, `borderRadius`,
+ * `boxShadow`, `fontFamily`, `fontSize`, `lineHeight`, `fontWeight`,
+ * `breakpoints`, `zIndex`, `transitionProperty`, `transitionDuration`,
+ * `transitionTimingFunction`, `animation`. Each export is emitted only
+ * when the corresponding primitive block is present. `darkMode` is
+ * always emitted and reflects `meta.darkModeStrategy`.
  */
 export function generateUnoTheme(resolved: ResolvedTokens): string {
-    const sections: string[] = [fileHeader()];
+    const sections: string[] = [fileHeader({ meta: resolved.meta })];
+
+    // ----- darkMode -----
+    const strategy = resolved.meta.darkModeStrategy ?? "class";
+    sections.push(
+        `export const darkMode = ${strategy === "media" ? "'media'" : "'class'"} as const;`,
+    );
+    sections.push("");
 
     // ----- colors -----
     const colors: Record<string, Record<string, string>> = {};
@@ -37,7 +48,8 @@ export function generateUnoTheme(resolved: ResolvedTokens): string {
     }
     if (resolved.semantic?.extra) {
         for (const role of Object.keys(resolved.semantic.extra)) {
-            colors[role] = scaleVarObject(role);
+            const canonical = canonicalizeSemanticRole(role);
+            colors[canonical] = scaleVarObject(canonical);
         }
     }
 
@@ -121,6 +133,54 @@ export function generateUnoTheme(resolved: ResolvedTokens): string {
         }
         sections.push(
             `export const fontWeight = ${serializeValue(fontWeight, 0)} as const;`,
+        );
+        sections.push("");
+    }
+
+    // ----- breakpoints / zIndex / transitions / animations -----
+    // These export literal values (not `--p-*` vars) — UnoCSS consumes
+    // them directly at build time, and PrimeVue components either don't
+    // care (breakpoints/transitions/animations) or read them via
+    // `semantic.zIndex` (handled in the preset generator).
+    if (resolved.primitive.breakpoints) {
+        sections.push(
+            `export const breakpoints = ${serializeValue(resolved.primitive.breakpoints, 0)} as const;`,
+        );
+        sections.push("");
+    }
+
+    if (resolved.primitive.zIndex) {
+        sections.push(
+            `export const zIndex = ${serializeValue(resolved.primitive.zIndex, 0)} as const;`,
+        );
+        sections.push("");
+    }
+
+    if (resolved.primitive.transitions) {
+        const tr = resolved.primitive.transitions;
+        if (tr.property) {
+            sections.push(
+                `export const transitionProperty = ${serializeValue(tr.property, 0)} as const;`,
+            );
+            sections.push("");
+        }
+        if (tr.duration) {
+            sections.push(
+                `export const transitionDuration = ${serializeValue(tr.duration, 0)} as const;`,
+            );
+            sections.push("");
+        }
+        if (tr.timingFunction) {
+            sections.push(
+                `export const transitionTimingFunction = ${serializeValue(tr.timingFunction, 0)} as const;`,
+            );
+            sections.push("");
+        }
+    }
+
+    if (resolved.primitive.animations) {
+        sections.push(
+            `export const animation = ${serializeValue(resolved.primitive.animations, 0)} as const;`,
         );
         sections.push("");
     }

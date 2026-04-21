@@ -9,8 +9,27 @@ import { CircularReferenceError, UnresolvedRefError } from "./errors.js";
 import { BUILTIN_PALETTES, isBuiltinPalette } from "./builtin-palettes.js";
 
 /**
- * Eagerly resolve all `{ ref }` pointers in the token tree.
- * Returns a new tree where every ref is replaced with its literal value.
+ * Eagerly resolve every `{ ref }` pointer in `preset.overrides`.
+ *
+ * Returns a new {@link ResolvedTokens} tree where every {@link Ref} has
+ * been replaced with its literal string value. The `primitive` and
+ * `semantic` blocks pass through unchanged — they may not contain
+ * refs.
+ *
+ * Refs may be chained (a ref pointing at another ref). The resolver
+ * tracks the chain to detect cycles.
+ *
+ * @throws {CircularReferenceError} On any ref cycle.
+ * @throws {UnresolvedRefError} When a ref path does not exist in the tree.
+ *
+ * @example
+ * ```ts
+ * import { loadTokens, resolveRefs } from "theme-unify";
+ *
+ * const tokens   = await loadTokens("./tokens.config.ts");
+ * const resolved = resolveRefs(tokens);
+ * // resolved.preset.overrides has zero `{ ref }` objects
+ * ```
  */
 export function resolveRefs(tokens: ThemeUnifyConfig): ResolvedTokens {
     const resolver = new RefResolver(tokens);
@@ -45,6 +64,10 @@ class RefResolver {
         ["shadows", "primitive.shadows"],
         ["typography", "primitive.typography"],
         ["fontWeight", "primitive.fontWeight"],
+        ["breakpoints", "primitive.breakpoints"],
+        ["zIndex", "primitive.zIndex"],
+        ["transitions", "primitive.transitions"],
+        ["animations", "primitive.animations"],
     ]);
 
     constructor(root: ThemeUnifyConfig) {

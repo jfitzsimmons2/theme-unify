@@ -8,9 +8,14 @@ import { fileHeader } from "./utils.js";
  *
  * Example: `{ light: "bg-chickpea-50", dark: "dark:bg-chickpea-950" }`
  *   → `'bg-page': 'bg-chickpea-50 dark:bg-chickpea-950'`
+ *
+ * The `dark:` variant is interpreted per the `darkMode` export from
+ * `uno-theme.ts`. When `darkMode` is `"class"`, UnoCSS activates `dark:`
+ * via a CSS class selector; when `"media"`, via `prefers-color-scheme`.
+ * The shortcut strings themselves are identical in both modes.
  */
 export function generateShortcuts(resolved: ResolvedTokens): string {
-    const lines = [fileHeader()];
+    const lines = [fileHeader({ meta: resolved.meta })];
 
     const shortcuts: Record<string, UnoCSSShortcut> = {
         ...(resolved.unocss?.shortcuts ?? {}),

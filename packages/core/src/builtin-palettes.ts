@@ -300,11 +300,34 @@ export const BUILTIN_PALETTES = {
     },
 } as const satisfies Record<string, ColorScale>;
 
+/**
+ * Union of every builtin palette name shipped with theme-unify. Use as
+ * a string-literal type when accepting user-supplied palette names.
+ *
+ * @example
+ * ```ts
+ * function pickScale(name: BuiltinPaletteName | (string & {})) { ... }
+ * ```
+ */
 export type BuiltinPaletteName = keyof typeof BUILTIN_PALETTES;
 
+/**
+ * Frozen, ordered list of every {@link BuiltinPaletteName}. Useful for
+ * dropdowns, validators, and palette-picker UIs.
+ */
 export const BUILTIN_PALETTE_NAMES: readonly BuiltinPaletteName[] =
     Object.keys(BUILTIN_PALETTES) as BuiltinPaletteName[];
 
+/**
+ * Type guard: is `name` one of the builtin palettes?
+ *
+ * @example
+ * ```ts
+ * if (isBuiltinPalette(userInput)) {
+ *   const scale = BUILTIN_PALETTES[userInput];
+ * }
+ * ```
+ */
 export function isBuiltinPalette(name: string): name is BuiltinPaletteName {
     return name in BUILTIN_PALETTES;
 }

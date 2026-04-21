@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generatePreset, buildPresetObject } from "../../src/generators/preset.js";
+import { generatePreset, buildPresetObject, buildThemeOptions } from "../../src/generators/preset.js";
 import { resolveRefs } from "../../src/resolver.js";
 import { validTokens } from "../fixtures/tokens.fixture.js";
 
@@ -41,7 +41,36 @@ describe("generatePreset", () => {
         const obj = buildPresetObject(resolveRefs(validTokens));
         const sem = obj.semantic as Record<string, Record<string, string>>;
         expect(sem.success["500"]).toBe("{kale.500}");
-        expect(sem.warning["500"]).toBe("{carrot.500}");
+        expect(sem.warn["500"]).toBe("{carrot.500}");
+    });
+
+    it("canonicalizes legacy role names (warning → warn, error → danger)", () => {
+        const obj = buildPresetObject(
+            resolveRefs({
+                meta: { name: "T" },
+                primitive: { colors: {} },
+                semantic: {
+                    extra: { warning: "carrot", error: "beetroot" },
+                },
+            } as never),
+        );
+        const sem = obj.semantic as Record<string, Record<string, string>>;
+        expect(sem.warn["500"]).toBe("{carrot.500}");
+        expect(sem.danger["500"]).toBe("{beetroot.500}");
+        expect(sem.warning).toBeUndefined();
+        expect(sem.error).toBeUndefined();
+    });
+
+    it("passes non-canonical roles through verbatim", () => {
+        const obj = buildPresetObject(
+            resolveRefs({
+                meta: { name: "T" },
+                primitive: { colors: {} },
+                semantic: { extra: { accent: "carrot" } },
+            } as never),
+        );
+        const sem = obj.semantic as Record<string, Record<string, string>>;
+        expect(sem.accent["500"]).toBe("{carrot.500}");
     });
 
     it("emits semantic.colorScheme.{light,dark}.surface", () => {
@@ -91,5 +120,96 @@ describe("generatePreset", () => {
         );
         const sem = obj.semantic as Record<string, Record<string, string>>;
         expect(sem.primary["500"]).toBe("#aaa");
+    });
+
+    it("emits semantic.zIndex when primitive.zIndex is provided", () => {
+        const obj = buildPresetObject(resolveRefs(validTokens));
+        const sem = obj.semantic as Record<string, Record<string, string>>;
+        expect(sem.zIndex).toBeDefined();
+        expect(sem.zIndex.modal).toBe("1200");
+        expect(sem.zIndex.tooltip).toBe("1400");
+    });
+
+    it("omits semantic.zIndex when primitive.zIndex is absent", () => {
+        const obj = buildPresetObject(
+            resolveRefs({
+                meta: { name: "T" },
+                primitive: { colors: {} },
+            }),
+        );
+        const sem = (obj.semantic ?? {}) as Record<string, unknown>;
+        expect(sem.zIndex).toBeUndefined();
+    });
+
+    it("preset.overrides.semantic.colorScheme does not clobber zIndex", () => {
+        const obj = buildPresetObject(
+            resolveRefs({
+                meta: { name: "T" },
+                primitive: {
+                    colors: {},
+                    zIndex: { modal: "1200" },
+                },
+                preset: {
+                    overrides: {
+                        semantic: {
+                            focusRing: { width: "2px" },
+                        },
+                    },
+                },
+            }),
+        );
+        const sem = obj.semantic as Record<string, Record<string, string>>;
+        expect(sem.zIndex.modal).toBe("1200");
+        expect((sem.focusRing as Record<string, string>).width).toBe("2px");
+    });
+});
+
+describe("buildThemeOptions", () => {
+    it("emits darkModeSelector from meta when strategy is class (default)", () => {
+        const opts = buildThemeOptions(
+            resolveRefs({
+                meta: { name: "T", darkModeSelector: "[data-dark]" },
+                primitive: { colors: {} },
+            }),
+        );
+        expect(opts.darkModeSelector).toBe("[data-dark]");
+    });
+
+    it("defaults darkModeSelector to .dark when strategy is class and no selector set", () => {
+        const opts = buildThemeOptions(
+            resolveRefs({
+                meta: { name: "T" },
+                primitive: { colors: {} },
+            }),
+        );
+        expect(opts.darkModeSelector).toBe(".dark");
+    });
+
+    it("emits .system when strategy is media", () => {
+        const opts = buildThemeOptions(
+            resolveRefs({
+                meta: { name: "T", darkModeStrategy: "media" },
+                primitive: { colors: {} },
+            }),
+        );
+        expect(opts.darkModeSelector).toBe(".system");
+    });
+
+    it("ignores darkModeSelector when strategy is media", () => {
+        const opts = buildThemeOptions(
+            resolveRefs({
+                meta: { name: "T", darkModeStrategy: "media", darkModeSelector: ".dark" },
+                primitive: { colors: {} },
+            }),
+        );
+        expect(opts.darkModeSelector).toBe(".system");
+    });
+});
+
+describe("generatePreset output", () => {
+    it("includes themeOptions export", () => {
+        const out = generatePreset(resolveRefs(validTokens));
+        expect(out).toContain("export const themeOptions");
+        expect(out).toContain("darkModeSelector");
     });
 });
