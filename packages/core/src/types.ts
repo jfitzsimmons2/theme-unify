@@ -39,7 +39,7 @@ export type ColorStep =
  *
  * @example
  * ```ts
- * import { COLOR_STEPS } from "theme-unify";
+ * import { COLOR_STEPS } from "@jfitzsimmons2/theme-unify";
  *
  * for (const step of COLOR_STEPS) {
  *   console.log(step, palette[step]);
@@ -550,6 +550,28 @@ export interface UnoCSSConfig {
      * generated `shortcuts.ts` file with both halves joined.
      */
     shortcuts?: Record<string, UnoCSSShortcut>;
+
+    /**
+     * Opt-in builtin palettes to expose alongside user-defined
+     * `primitive.colors`. By default theme-unify only emits user
+     * palettes plus builtins referenced via `semantic` (e.g.
+     * `surface.scale: "slate"`); setting this to `true` includes
+     * **all** builtin palettes, while passing an array opts in only
+     * the named subset.
+     *
+     * Opted-in palettes are emitted by the PrimeVue preset as
+     * `--p-{name}-{step}` CSS variables and surfaced in the UnoCSS
+     * theme as `var(--p-{name}-{step})` references — no hex
+     * duplication.
+     *
+     * A user palette of the same name (defined in `primitive.colors`)
+     * always wins; opting in such a name emits a one-time
+     * `console.warn`.
+     *
+     * @example `["purple", "emerald"]`
+     * @defaultValue `false`
+     */
+    includeBuiltinPalettes?: boolean | readonly import("./builtin-palettes.js").BuiltinPaletteName[];
 }
 
 // ---- Token Schema (input) ----
@@ -562,7 +584,7 @@ export interface UnoCSSConfig {
  *
  * @example
  * ```ts
- * import { defineTokens } from "theme-unify";
+ * import { defineTokens } from "@jfitzsimmons2/theme-unify";
  *
  * export default defineTokens({
  *   meta: { name: "My Theme" },

@@ -1,6 +1,6 @@
 # Consumer guide
 
-Practical recipes for **using** `theme-unify` in an app. If you're
+Practical recipes for **using** `@jfitzsimmons2/theme-unify` in an app. If you're
 contributing to the library itself, see [contributing.md](contributing.md);
 this page is for developers integrating the generated output into a
 project.
@@ -32,7 +32,7 @@ project.
 ## Install
 
 ```bash
-pnpm add -D theme-unify
+pnpm add -D @jfitzsimmons2/theme-unify
 ```
 
 You will also need `primevue` and `@primeuix/themes` (the base presets
@@ -51,7 +51,7 @@ The result must be the **default export** so the CLI can find it.
 
 ```ts
 // tokens.config.ts
-import { defineTokens } from "theme-unify";
+import { defineTokens } from "@jfitzsimmons2/theme-unify";
 
 export default defineTokens({
   meta: { name: "My Theme" },
@@ -153,9 +153,34 @@ UnoCSS shortcuts (via the `dark:` prefix in your shortcut values) read
 the same selector. Use whatever class/attribute suits your stack — set
 `meta.darkModeSelector` to match.
 
+### Semantic colors are scheme-aware — `dark:` is usually unnecessary
+
+Semantic-role utilities (`bg-surface-*`, `bg-primary-*`, and any
+`extra` role like `bg-success-*`) resolve to `var(--p-{role}-{step})`,
+and the generated PrimeVue preset emits **different values** for those
+variables under `.light` vs `.dark`. So a single class produces the
+correct color in either scheme — no `dark:` prefix required.
+
+| Goal | Write | Why |
+| --- | --- | --- |
+| Same step, scheme-aware (semantic roles) | `bg-surface-100` | The CSS var flips automatically with the scheme. |
+| Step inversion (e.g. lightest in light, darkest in dark) | `bg-surface-50 dark:bg-surface-900` | Plain Uno utilities; `dark:` selects a different step per scheme. |
+| Wrap a step inversion as a token | shortcut: `{ light: "bg-surface-50", dark: "dark:bg-surface-900" }` | Bakes the inversion into a single class like `bg-page`. |
+| Override on a non-semantic palette (custom or builtin, e.g. `bg-blueberry-*`) | `bg-blueberry-50 dark:bg-blueberry-900` | Custom/builtin palette vars are **not** scheme-aware; `dark:` is the only way to switch. |
+
+> **Don't `dark:` a baked-in shortcut.** The shortcuts in
+> `unocss.shortcuts` (`bg-page`, `bg-surface`, `text-body`, …) already
+> contain their own `dark:` clause. Writing `dark:bg-surface` expands
+> to `dark:(bg-surface-100 dark:bg-surface-900)`, gating the light
+> clause on `.dark` and producing an unreachable `dark:dark:` for the
+> dark clause — net result, nothing matches. Use the shortcut bare
+> (`bg-surface`) for both schemes, or use the underlying utilities
+> (`bg-surface-100 dark:bg-surface-900`) when you need explicit
+> per-scheme control.
+
 ## Editor autocomplete (`defineTypedTokens`)
 
-Stock `defineTokens` (from the bare `theme-unify` import) types
+Stock `defineTokens` (from the bare `@jfitzsimmons2/theme-unify` import) types
 `preset.overrides` as `Record<string, unknown>` so the core entry
 stays free of any `@primeuix/themes` dependency. To get full
 IntelliSense across every PrimeVue knob, import `defineTokens` from
@@ -163,7 +188,7 @@ the per-base sugar entry that matches your `preset.base`:
 
 ```ts
 // tokens.config.ts
-import { defineTokens } from "theme-unify/aura"; // or /lara, /nora, /material
+import { defineTokens } from "@jfitzsimmons2/theme-unify/aura"; // or /lara, /nora, /material
 
 export default defineTokens({
   meta: { name: "My Theme" },
@@ -191,7 +216,7 @@ If you need to type against a custom preset that's not one of the four
 shipped bases, use the generic entry:
 
 ```ts
-import { defineTypedTokens } from "theme-unify/typed";
+import { defineTypedTokens } from "@jfitzsimmons2/theme-unify/typed";
 import type { Preset } from "@primeuix/themes/types";
 import type { MyBaseTokens } from "./my-base";
 
@@ -199,7 +224,7 @@ export default defineTypedTokens<Preset<MyBaseTokens>>({ /* ... */ });
 ```
 
 `@primeuix/themes` is an **optional peer dependency** of
-`theme-unify` — install it only if you import one of the typed
+`@jfitzsimmons2/theme-unify` — install it only if you import one of the typed
 entries:
 
 ```bash
@@ -235,6 +260,26 @@ pnpm exec theme-unify colors            # formatted listing
 pnpm exec theme-unify colors --json     # machine-readable
 ```
 
+> **Builtins as utilities** — by default `uno-theme.ts` only emits
+> palettes you actually use: every entry in `primitive.colors` plus
+> any builtin referenced via `semantic` (e.g.
+> `surface.scale: "slate"`). To expose additional builtins as UnoCSS
+> utilities — so `bg-emerald-500`, `text-purple-700`, etc. resolve —
+> opt in via `unocss.includeBuiltinPalettes`:
+>
+> ```ts
+> unocss: {
+>   includeBuiltinPalettes: ["emerald", "purple"], // subset
+>   // or: includeBuiltinPalettes: true,           // all 22
+> }
+> ```
+>
+> Opted-in builtins flow through the preset as `--p-{name}-{step}`
+> CSS variables, so the UnoCSS theme can reference them with no hex
+> duplication and runtime preset swaps cascade. A user palette of the
+> same name always wins; opting in such a name emits a one-time
+> `console.warn`.
+
 ## Cross-references in `preset.overrides`
 
 Refs are only allowed inside `preset.overrides` (not inside `primitive`
@@ -267,7 +312,7 @@ preset: {
 ```
 
 Cycles throw `CircularReferenceError`; missing paths throw
-`UnresolvedRefError`. Both are exported from `theme-unify`.
+`UnresolvedRefError`. Both are exported from `@jfitzsimmons2/theme-unify`.
 
 ## Programmatic API
 
@@ -279,7 +324,7 @@ import {
   generatePreset, generateUnoTheme, generateShortcuts, generatePalettes,
   buildPresetObject, collectPalettes,
   TokenValidationError,
-} from "theme-unify";
+} from "@jfitzsimmons2/theme-unify";
 
 // Load + validate; throws TokenValidationError on issues.
 const tokens = await loadTokens("./tokens.config.ts");
@@ -321,12 +366,12 @@ import { writeFileSync } from "node:fs";
 import {
   loadTokens, resolveRefs,
   generatePreset, generateUnoTheme, generateShortcuts, generatePalettes,
-} from "theme-unify";
+} from "@jfitzsimmons2/theme-unify";
 
 export default defineConfig({
   plugins: [
     {
-      name: "theme-unify",
+      name: "@jfitzsimmons2/theme-unify",
       async buildStart() {
         const tokens   = await loadTokens("./tokens.config.ts");
         const resolved = resolveRefs(tokens);
@@ -340,7 +385,7 @@ export default defineConfig({
 });
 ```
 
-The shipped `theme-unify/vite` entry is a placeholder slated for a
+The shipped `@jfitzsimmons2/theme-unify/vite` entry is a placeholder slated for a
 proper auto-regenerate-on-change implementation in v0.2 — until then,
 the snippet above gives you the same effect (run on `buildStart`).
 
@@ -375,7 +420,7 @@ preset-blue.ts`), and `usePreset(...)` to switch.
 ## Catalog UI from `palettes.ts`
 
 The `palettes.ts` output is purpose-built for swatch pickers and design-
-system docs. Five `as const` exports:
+system docs. Six `as const` exports:
 
 | Export                          | Use for                                         |
 | ------------------------------- | ----------------------------------------------- |
@@ -384,6 +429,7 @@ system docs. Five `as const` exports:
 | `referencedBuiltinPalettes`     | render only builtins your config actually uses  |
 | `shadowedBuiltinPalettes`       | warn the user about name collisions             |
 | `availableBuiltinPaletteNames`  | populate a "scale name" dropdown in tooling     |
+| `semanticPalettes`              | render each semantic role (`primary`, `surface`, extras) via `bg-{role}-{step}` so swatches reflect runtime preset overrides |
 
 ```vue
 <script setup lang="ts">
@@ -448,6 +494,6 @@ If you're sure you want to wipe a hand-edit and regenerate, pass
 
 **Editor doesn't autocomplete `preset.overrides`**
 Stock `defineTokens` widens overrides to `Record<string, unknown>`.
-Import `defineTokens` from `theme-unify/aura` (or `/lara`, `/nora`,
+Import `defineTokens` from `@jfitzsimmons2/theme-unify/aura` (or `/lara`, `/nora`,
 `/material`) for full PrimeVue autocomplete on `preset.overrides` —
 see [editor autocomplete](#editor-autocomplete-definetypedtokens).

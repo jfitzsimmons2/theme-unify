@@ -13,7 +13,7 @@
  *
  * @example
  * ```ts
- * import { defineTypedTokens } from "theme-unify/typed";
+ * import { defineTypedTokens } from "@jfitzsimmons2/theme-unify/typed";
  * import type { Preset } from "@primeuix/themes/types";
  * import type { AuraBaseDesignTokens } from "@primeuix/themes/aura/base";
  *

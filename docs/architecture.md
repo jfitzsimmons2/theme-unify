@@ -4,7 +4,7 @@
 
 ```
 packages/
-  core/        # The published `theme-unify` package — CLI, generators, public API
+  core/        # The published `@jfitzsimmons2/theme-unify` package — CLI, generators, public API
   playground/  # @theme-unify/playground — Vue 3 + PrimeVue + UnoCSS demo app
 ```
 
@@ -52,8 +52,8 @@ All paths are under [packages/core/src](../packages/core/src).
 | --- | --- |
 | [index.ts](../packages/core/src/index.ts) | Public API surface — every export is part of the package contract |
 | [define-tokens.ts](../packages/core/src/define-tokens.ts) | `defineTokens()` identity helper for type inference |
-| [typed.ts](../packages/core/src/typed.ts) | Generic `defineTypedTokens<Preset>()` helper + `DeepTokenValue<T>` / `TypedThemeUnifyConfig<Preset>` types (entry: `theme-unify/typed`) |
-| typed-{aura,lara,nora,material}.ts | Per-base sugar entries re-exporting `defineTokens` pre-bound to the matching PrimeUix preset (entries: `theme-unify/aura`, `/lara`, `/nora`, `/material`) |
+| [typed.ts](../packages/core/src/typed.ts) | Generic `defineTypedTokens<Preset>()` helper + `DeepTokenValue<T>` / `TypedThemeUnifyConfig<Preset>` types (entry: `@jfitzsimmons2/theme-unify/typed`) |
+| typed-{aura,lara,nora,material}.ts | Per-base sugar entries re-exporting `defineTokens` pre-bound to the matching PrimeUix preset (entries: `@jfitzsimmons2/theme-unify/aura`, `/lara`, `/nora`, `/material`) |
 | [load-tokens.ts](../packages/core/src/load-tokens.ts) | Resolve and dynamically import a config file via `jiti` |
 | [validator.ts](../packages/core/src/validator.ts) | Schema/value/ref validation; throws `TokenValidationError` |
 | [resolver.ts](../packages/core/src/resolver.ts) | Replace `{ ref: "…" }` inside `preset.overrides`, with cycle detection |
@@ -61,7 +61,7 @@ All paths are under [packages/core/src](../packages/core/src).
 | [builtin-palettes.ts](../packages/core/src/builtin-palettes.ts) | 22 Tailwind/PrimeUix color scales + `resolveScale` lookup with builtin fallback |
 | [errors.ts](../packages/core/src/errors.ts) | `CircularReferenceError`, `UnresolvedRefError`, `TokenValidationError` |
 | [write-output.ts](../packages/core/src/write-output.ts) | Idempotent file writer (skip if unchanged) |
-| [cli.ts](../packages/core/src/cli.ts) | `cac`-based CLI entry; bin: `theme-unify` |
+| [cli.ts](../packages/core/src/cli.ts) | `cac`-based CLI entry; bin: `@jfitzsimmons2/theme-unify` |
 | [vite.ts](../packages/core/src/vite.ts) | Placeholder Vite plugin |
 | [generators/](../packages/core/src/generators) | One file per output format — see [generators.md](generators.md) |
 

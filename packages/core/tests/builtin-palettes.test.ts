@@ -132,3 +132,126 @@ describe("generateUnoTheme with builtin palettes", () => {
         expect(output).toContain("var(--p-emerald-500)");
     });
 });
+
+describe("collectPalettes (catalog)", () => {
+    it("includes only referenced builtins by default", async () => {
+        const { collectPalettes } = await import("../src/generators/palettes.js");
+        const catalog = collectPalettes(resolveRefs(tokensWithBuiltin()));
+        expect(catalog.referencedBuiltins).toEqual(["emerald", "purple", "slate"]);
+        expect(catalog.optInBuiltins).toEqual([]);
+        expect(Object.keys(catalog.builtin).sort()).toEqual([
+            "emerald",
+            "purple",
+            "slate",
+        ]);
+    });
+
+    it("includes opt-in builtins on top of referenced ones", async () => {
+        const { collectPalettes } = await import("../src/generators/palettes.js");
+        const tokens = tokensWithBuiltin();
+        tokens.unocss = { includeBuiltinPalettes: ["lime", "purple"] };
+        const catalog = collectPalettes(resolveRefs(tokens));
+        // `purple` is referenced, so it stays in referencedBuiltins (not optIn)
+        expect(catalog.optInBuiltins).toEqual(["lime"]);
+        expect(Object.keys(catalog.builtin).sort()).toEqual([
+            "emerald",
+            "lime",
+            "purple",
+            "slate",
+        ]);
+    });
+
+    it("includes every builtin when opt-in is `true`", async () => {
+        const { collectPalettes } = await import("../src/generators/palettes.js");
+        const tokens = tokensWithBuiltin();
+        tokens.unocss = { includeBuiltinPalettes: true };
+        const catalog = collectPalettes(resolveRefs(tokens));
+        expect(Object.keys(catalog.builtin).length).toBe(BUILTIN_PALETTE_NAMES.length);
+    });
+
+    it("describes semantic roles with their backing scale and source kind", async () => {
+        const { collectPalettes } = await import("../src/generators/palettes.js");
+        const catalog = collectPalettes(resolveRefs(tokensWithBuiltin()));
+        expect(catalog.semantic).toEqual([
+            { role: "primary", source: "purple", sourceKind: "builtin" },
+            {
+                role: "surface",
+                source: "oatmeal",
+                sourceKind: "custom",
+                darkSource: "slate",
+                darkSourceKind: "builtin",
+            },
+            { role: "success", source: "emerald", sourceKind: "builtin" },
+        ]);
+    });
+
+    it("canonicalizes legacy extra role names and flags inline scales", async () => {
+        const { collectPalettes } = await import("../src/generators/palettes.js");
+        const tokens = tokensWithBuiltin();
+        tokens.semantic!.primary = {
+            50: "#ffffff",
+            100: "#eeeeee",
+            200: "#dddddd",
+            300: "#cccccc",
+            400: "#bbbbbb",
+            500: "#aaaaaa",
+            600: "#999999",
+            700: "#777777",
+            800: "#555555",
+            900: "#333333",
+            950: "#111111",
+        };
+        tokens.semantic!.extra = { warning: "orange", error: "rose" };
+        const catalog = collectPalettes(resolveRefs(tokens));
+        const roles = catalog.semantic.map((e) => ({
+            role: e.role,
+            source: e.source,
+            sourceKind: e.sourceKind,
+        }));
+        expect(roles).toEqual([
+            { role: "primary", source: null, sourceKind: "inline" },
+            { role: "surface", source: "oatmeal", sourceKind: "custom" },
+            { role: "warn", source: "orange", sourceKind: "builtin" },
+            { role: "danger", source: "rose", sourceKind: "builtin" },
+        ]);
+    });
+});
+
+describe("validator with includeBuiltinPalettes", () => {
+    it("accepts a valid array", () => {
+        const tokens = tokensWithBuiltin();
+        tokens.unocss = { includeBuiltinPalettes: ["lime", "rose"] };
+        expect(validateTokens(tokens)).toEqual([]);
+    });
+
+    it("accepts boolean values", () => {
+        const tokens = tokensWithBuiltin();
+        tokens.unocss = { includeBuiltinPalettes: true };
+        expect(validateTokens(tokens)).toEqual([]);
+        tokens.unocss = { includeBuiltinPalettes: false };
+        expect(validateTokens(tokens)).toEqual([]);
+    });
+
+    it("rejects unknown palette names", () => {
+        const tokens = tokensWithBuiltin();
+        tokens.unocss = {
+            includeBuiltinPalettes: ["lime", "purpel" as never],
+        };
+        const issues = validateTokens(tokens);
+        expect(
+            issues.some((i) =>
+                i.path === "unocss.includeBuiltinPalettes.1" &&
+                i.message.includes("purpel"),
+            ),
+        ).toBe(true);
+    });
+
+    it("rejects non-boolean / non-array values", () => {
+        const tokens = tokensWithBuiltin();
+        tokens.unocss = { includeBuiltinPalettes: "all" as never };
+        const issues = validateTokens(tokens);
+        expect(
+            issues.some((i) => i.path === "unocss.includeBuiltinPalettes"),
+        ).toBe(true);
+    });
+});

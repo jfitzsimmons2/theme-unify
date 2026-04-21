@@ -16,7 +16,7 @@ published binary is `theme-unify` (configured via `bin` in
 | `--preset <filename>` | `preset.ts` | PrimeVue preset output |
 | `--uno-theme <filename>` | `uno-theme.ts` | UnoCSS theme exports (CSS-variable backed) |
 | `--shortcuts <filename>` | `shortcuts.ts` | UnoCSS shortcuts |
-| `--palettes <filename>` | `palettes.ts` | Color palette catalog (custom + builtin hex values) |
+| `--palettes <filename>` | `palettes.ts` | Color palette catalog (custom + shipped builtin hex values) |
 | `--dry-run` | off | Print all outputs to stdout, do not write |
 | `--force` | off | Always write, even if content is unchanged |
 | `--validate` | off | Run `loadTokens` (which validates) and exit 0 |
@@ -70,8 +70,10 @@ Lists every color scale theme-unify knows about for the given config:
 - **Referenced builtins** — the subset of builtin (Tailwind v3 / Aura)
   palettes used by `semantic.primary`, `semantic.surface.{scale,darkScale}`,
   or `semantic.extra.*`, with hex values.
+- **Opt-in builtins** — builtins additionally exposed via
+  `unocss.includeBuiltinPalettes`, with hex values.
 - **All available builtin names** — the full list of 22 builtin palettes
-  you can reference from `semantic`.
+  you can reference from `semantic` or opt into via `unocss.includeBuiltinPalettes`.
 
 Pass `--json` to print the raw `PaletteCatalog` object instead of the
 formatted listing.

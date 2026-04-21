@@ -36,11 +36,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm -r build
-
-      - name: Test
-        run: pnpm test
+      - name: Test core package
+        run: pnpm --filter @jfitzsimmons2/theme-unify test
 
       - name: Check for pending changesets
         id: changeset_status
@@ -48,7 +45,7 @@ jobs:
           # `changeset status` exits non-zero when there are no changesets.
           # We treat "no changesets" as a successful no-op for develop.
           if pnpm changeset status --output=/tmp/changeset-status.json; then
-            count=$(node -e "const s=require('/tmp/changeset-status.json');console.log(s.changesets.length)")
+            count=$(node -e "const s=require('/tmp/changeset-status.json');console.log(s.releases.filter(r=>r.type!=='none').length)")
             echo "count=$count" >> "$GITHUB_OUTPUT"
           else
             echo "count=0" >> "$GITHUB_OUTPUT"
@@ -60,12 +57,18 @@ jobs:
         # without consuming changeset files or committing anything.
         run: pnpm changeset version --snapshot dev
 
+      - name: Build core package (with bumped version)
+        if: steps.changeset_status.outputs.count != '0'
+        # Build AFTER the version bump so the published `dist/` carries
+        # the snapshot version (cli.ts imports it from package.json).
+        run: pnpm --filter @jfitzsimmons2/theme-unify build
+
       - name: Publish to npm under `dev` dist-tag
         if: steps.changeset_status.outputs.count != '0'
-        # `--no-git-tag` prevents tagging develop snapshots in git.
         # `--snapshot` + `--tag dev` publishes under the `dev` dist-tag,
-        # so consumers must opt in via `npm i theme-unify@dev`.
-        run: pnpm changeset publish --no-git-tag --snapshot --tag dev
+        # so consumers must opt in via `npm i @jfitzsimmons2/theme-unify@dev`.
+        # No git tags are pushed (we never commit the snapshot bump).
+        run: pnpm changeset publish --snapshot --tag dev
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

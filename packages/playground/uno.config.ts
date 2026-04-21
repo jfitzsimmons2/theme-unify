@@ -40,6 +40,10 @@ safelist.push(
     ]),
 );
 
+safelist.push(
+    "rounded-full",
+);
+
 // Materialise `animate-{name}` shortcuts from the user's primitive.animations
 // shorthand record. UnoCSS's built-in `animate-*` rule expects a
 // ThemeAnimation block (keyframes/durations/timingFns) rather than a flat

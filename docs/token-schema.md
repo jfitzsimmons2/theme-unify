@@ -138,25 +138,25 @@ Optional. Lets you reach the full Aura preset shape.
 | `base` | `"aura" \| "lara" \| "nora" \| "material"` | Defaults to `"aura"`. Drives the `definePreset` import in the generated file. |
 | `overrides` | `DeepTokenValue<AuraPreset>` | Deep-merged onto the generated preset. Refs (`{ ref: "radii.sm" }`) are resolved before merge. Use this for `semantic.focusRing`, `semantic.formField`, `components.*`, etc. |
 
-Stock `defineTokens` from the bare `theme-unify` entry types
+Stock `defineTokens` from the bare `@jfitzsimmons2/theme-unify` entry types
 `overrides` as `Record<string, unknown>` so the core package can stay
 free of any `@primeuix/themes` dependency. To get full IntelliSense,
 import `defineTokens` from the per-base sugar entry that matches your
 `preset.base`:
 
 ```ts
-import { defineTokens } from "theme-unify/aura"; // or /lara, /nora, /material
+import { defineTokens } from "@jfitzsimmons2/theme-unify/aura"; // or /lara, /nora, /material
 ```
 
 For a custom preset, use the generic entry:
 
 ```ts
-import { defineTypedTokens } from "theme-unify/typed";
+import { defineTypedTokens } from "@jfitzsimmons2/theme-unify/typed";
 export default defineTypedTokens<MyPreset>({ /* ... */ });
 ```
 
 `@primeuix/themes` is an **optional peer dependency** of
-`theme-unify` — install it only if you import one of the typed
+`@jfitzsimmons2/theme-unify` — install it only if you import one of the typed
 entries.
 
 ## `unocss.shortcuts`
@@ -173,6 +173,33 @@ unocss: {
 Each entry is collapsed to a single space-joined utility string
 (`bg-surface-50 dark:bg-surface-950`) so the dark-mode variant rides
 along automatically.
+
+## `unocss.includeBuiltinPalettes`
+
+By default the generated UnoCSS theme only emits palettes you actually
+use: every entry in `primitive.colors` plus any builtin referenced via
+`semantic` (e.g. `surface.scale: "slate"`). To expose additional
+builtins as utilities — so `bg-emerald-500`, `text-purple-700`, etc.
+resolve — opt them in here:
+
+```ts
+unocss: {
+  // Subset
+  includeBuiltinPalettes: ["emerald", "purple"],
+  // ...or all 22:
+  // includeBuiltinPalettes: true,
+}
+```
+
+Opted-in builtins flow through the PrimeVue preset as
+`--p-{name}-{step}` CSS variables and are surfaced in `uno-theme.ts`'s
+`colors` export as `var(--p-{name}-{step})` references — no hex
+duplication, and runtime preset edits cascade. A user palette of the
+same name always wins; opting in such a name emits a one-time
+`console.warn`.
+
+The validator rejects unknown palette names with the same listing
+shown for unknown `semantic` scale references.
 
 ## Refs
 
@@ -228,7 +255,8 @@ Available names (`BUILTIN_PALETTE_NAMES`):
 - **Validation.** The validator rejects any scale name that is neither in
   `primitive.colors` nor a builtin.
 - **UnoCSS emission stays lean.** Builtins are included in the generated
-  `colors` export only when actually referenced via `semantic`.
+  `colors` export only when actually referenced via `semantic` or opted
+  in via [`unocss.includeBuiltinPalettes`](#unocssincludebuiltinpalettes).
 
 ### Public API
 
@@ -242,8 +270,8 @@ From [packages/core/src/index.ts](../packages/core/src/index.ts):
 
 ### Editor autocomplete
 
-The per-base typed entries (`theme-unify/aura`, `/lara`, `/nora`,
-`/material`) and the generic `theme-unify/typed` entry widen scale-name
+The per-base typed entries (`@jfitzsimmons2/theme-unify/aura`, `/lara`, `/nora`,
+`/material`) and the generic `@jfitzsimmons2/theme-unify/typed` entry widen scale-name
 fields with `BuiltinPaletteName | (string & {})` so editors suggest
 builtin names alongside user-defined keys. See
 [packages/core/src/typed.ts](../packages/core/src/typed.ts).

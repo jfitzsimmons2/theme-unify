@@ -17,7 +17,7 @@ import type { ThemeUnifyConfig } from "./types.js";
  * @example
  * ```ts
  * // tokens.config.ts
- * import { defineTokens } from "theme-unify";
+ * import { defineTokens } from "@jfitzsimmons2/theme-unify";
  *
  * export default defineTokens({
  *   meta: { name: "My Theme", darkModeSelector: ".dark" },

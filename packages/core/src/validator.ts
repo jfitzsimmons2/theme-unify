@@ -263,6 +263,32 @@ export function validateTokens(tokens: ThemeUnifyConfig): ValidationIssue[] {
         }
     }
 
+    // Validate unocss.includeBuiltinPalettes
+    if (tokens.unocss && "includeBuiltinPalettes" in tokens.unocss) {
+        const opt = tokens.unocss.includeBuiltinPalettes;
+        if (
+            opt !== undefined &&
+            typeof opt !== "boolean" &&
+            !Array.isArray(opt)
+        ) {
+            issues.push({
+                path: "unocss.includeBuiltinPalettes",
+                message:
+                    "Invalid includeBuiltinPalettes — expected boolean or an array of builtin palette names.",
+            });
+        } else if (Array.isArray(opt)) {
+            for (let i = 0; i < opt.length; i++) {
+                const name = opt[i];
+                if (typeof name !== "string" || !isBuiltinPalette(name)) {
+                    issues.push({
+                        path: `unocss.includeBuiltinPalettes.${i}`,
+                        message: `Unknown builtin palette "${String(name)}". Expected one of: ${BUILTIN_PALETTE_NAMES.join(", ")}.`,
+                    });
+                }
+            }
+        }
+    }
+
     // Validate all refs resolve to existing paths
     validateRefs(tokens, tokens, "", issues);
 

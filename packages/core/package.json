@@ -1,5 +1,5 @@
 {
-    "name": "theme-unify",
+    "name": "@jfitzsimmons2/theme-unify",
     "version": "0.3.0",
     "type": "module",
     "description": "Compile a single token definition into PrimeVue 4 theme presets and UnoCSS theme configs",

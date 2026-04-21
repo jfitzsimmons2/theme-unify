@@ -27,7 +27,7 @@ import { TokenValidationError } from "./errors.js";
  *
  * @example
  * ```ts
- * import { loadTokens, resolveRefs, generatePreset } from "theme-unify";
+ * import { loadTokens, resolveRefs, generatePreset } from "@jfitzsimmons2/theme-unify";
  *
  * const tokens   = await loadTokens("./tokens.config.ts");
  * const resolved = resolveRefs(tokens);

@@ -6,15 +6,15 @@ Tests live in [packages/core/tests](../packages/core/tests) and run under
 [vitest](https://vitest.dev/). No vitest config file — defaults are fine.
 
 ```bash
-pnpm --filter theme-unify test           # one-shot
-pnpm --filter theme-unify test:watch     # watch mode
+pnpm --filter @jfitzsimmons2/theme-unify test           # one-shot
+pnpm --filter @jfitzsimmons2/theme-unify test:watch     # watch mode
 pnpm test                                # all packages (currently just core)
 ```
 
 Run a single file:
 
 ```bash
-pnpm --filter theme-unify exec vitest run tests/generators/preset.test.ts
+pnpm --filter @jfitzsimmons2/theme-unify exec vitest run tests/generators/preset.test.ts
 ```
 
 ## Layout

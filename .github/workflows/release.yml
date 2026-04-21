@@ -40,11 +40,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm -r build
-
-      - name: Test
-        run: pnpm test
+      - name: Test core package
+        run: pnpm --filter @jfitzsimmons2/theme-unify test
 
       - name: Check for pending changesets
         id: changeset_status

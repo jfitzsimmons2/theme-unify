@@ -6,7 +6,8 @@ import type {
 } from "../types.js";
 import { COLOR_STEPS } from "../types.js";
 import { fileHeader, serializeValue, canonicalizeSemanticRole } from "./utils.js";
-import { resolveScale } from "../builtin-palettes.js";
+import { resolveScale, BUILTIN_PALETTES } from "../builtin-palettes.js";
+import { collectEffectiveBuiltins } from "../effective-builtins.js";
 
 const BASE_THEME_IMPORTS: Record<string, string> = {
     aura: "@primeuix/themes/aura",
@@ -65,6 +66,16 @@ export function buildPresetObject(resolved: ResolvedTokens): Record<string, unkn
     // ----- primitive: every user palette becomes --p-{name}-{step} -----
     for (const [name, scale] of Object.entries(resolved.primitive.colors)) {
         primitive[name] = scaleToObject(scale);
+    }
+
+    // Builtins referenced via `semantic` or opted into via
+    // `unocss.includeBuiltinPalettes` are emitted as primitives too so
+    // their `--p-{name}-{step}` CSS vars exist for both PrimeVue
+    // components and UnoCSS utilities. User palettes always win (the
+    // shared helper already filters shadowed names).
+    for (const name of collectEffectiveBuiltins(resolved)) {
+        if (primitive[name]) continue;
+        primitive[name] = scaleToObject(BUILTIN_PALETTES[name]);
     }
 
     // primitive non-color tokens → --p-spacing-md, --p-shadow-sm, etc.

@@ -1,4 +1,4 @@
-import { defineTokens } from "theme-unify/aura";
+import { defineTokens } from "@jfitzsimmons2/theme-unify/aura";
 
 export default defineTokens({
   meta: {

@@ -3,8 +3,31 @@ import { ref } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
+import {
+    customPalettes,
+    builtinPalettes,
+    semanticPalettes,
+} from '../generated/palettes'
 
 const colorSteps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const
+
+// Look up the actual hex scales backing the `surface` semantic role so we can
+// render a true dark-surface preview without depending on the current scheme.
+// `bg-surface-{step}` resolves to a CSS var that flips with `.dark`, so a
+// "Dark surface" row using `dark:bg-surface-{step}` either disappears (light
+// mode) or duplicates the live row (dark mode) — neither is useful.
+const allPalettes = {
+    ...(builtinPalettes as Record<string, Record<string, string>>),
+    ...(customPalettes as Record<string, Record<string, string>>),
+}
+const surfaceRole = semanticPalettes.find((e) => e.role === 'surface')
+const darkSurfaceName = surfaceRole?.darkSource ?? surfaceRole?.source ?? null
+const darkSurfaceScale = darkSurfaceName ? allPalettes[darkSurfaceName] : undefined
+
+function darkSurfaceHex(step: number): string {
+    if (step === 0) return '#ffffff' // Aura convention — preset always emits surface[0] white.
+    return darkSurfaceScale?.[String(step)] ?? 'transparent'
+}
 
 const animationKey = ref(0)
 function replayAnimations() {
@@ -53,13 +76,15 @@ function replayAnimations() {
         <!-- Surface Scale -->
         <Card>
             <template #title>Surface Scale (Unified with PrimeVue)</template>
-            <template #subtitle>bg-surface-{step} / text-surface-{step} — shared source of truth with
-                PrimeVue
-                surface tokens</template>
+            <template #subtitle>bg-surface-{step} resolves to <code>var(--p-surface-{step})</code> — the
+                preset emits different values per scheme, so the bare class flips with dark mode (no
+                <code>dark:</code> prefix needed).</template>
             <template #content>
                 <div class="flex flex-col gap-4">
                     <div>
-                        <p class="text-xs text-muted mb-1">Light surface (oatmeal)</p>
+                        <p class="text-xs text-muted mb-1">
+                            Live surface — toggle dark mode (top right) to see the same classes flip.
+                        </p>
                         <div class="flex gap-1">
                             <div v-for="step in [0, ...colorSteps]" :key="step"
                                 class="flex-1 h-12 flex items-end justify-center pb-1 rounded-sm first:rounded-l last:rounded-r"
@@ -71,14 +96,17 @@ function replayAnimations() {
                         </div>
                     </div>
                     <div>
-                        <p class="text-xs text-muted mb-1">Dark surface (chickpea)</p>
+                        <p class="text-xs text-muted mb-1">
+                            Dark surface preview (rendered from generated hex — always shows the dark scale
+                            regardless of current mode<span v-if="darkSurfaceName"> · source:
+                                <code>{{ darkSurfaceName }}</code></span>)
+                        </p>
                         <div class="flex gap-1">
                             <div v-for="step in [0, ...colorSteps]" :key="step"
                                 class="flex-1 h-12 flex items-end justify-center pb-1 rounded-sm first:rounded-l last:rounded-r"
-                                :class="`bg-surface-dark-${step}`">
+                                :style="{ background: darkSurfaceHex(step) }">
                                 <span class="text-[10px] font-mono"
-                                    :class="step < 400 ? 'text-surface-dark-900' : 'text-surface-dark-50'">{{
-                                        step }}</span>
+                                    :style="{ color: step < 400 ? '#0f172a' : '#f8fafc' }">{{ step }}</span>
                             </div>
                         </div>
                     </div>

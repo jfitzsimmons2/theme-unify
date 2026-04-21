@@ -24,7 +24,7 @@ import { BUILTIN_PALETTES, isBuiltinPalette } from "./builtin-palettes.js";
  *
  * @example
  * ```ts
- * import { loadTokens, resolveRefs } from "theme-unify";
+ * import { loadTokens, resolveRefs } from "@jfitzsimmons2/theme-unify";
  *
  * const tokens   = await loadTokens("./tokens.config.ts");
  * const resolved = resolveRefs(tokens);

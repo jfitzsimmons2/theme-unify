@@ -35,8 +35,8 @@ and every utility class follows automatically — no rebuild required.
 ## Install
 
 ```bash
-pnpm add -D theme-unify
-# or npm i -D theme-unify / yarn add -D theme-unify
+pnpm add -D @jfitzsimmons2/theme-unify
+# or npm i -D @jfitzsimmons2/theme-unify / yarn add -D @jfitzsimmons2/theme-unify
 ```
 
 The package ships with a CLI, programmatic API, and TypeScript types.
@@ -49,7 +49,7 @@ The package ships with a CLI, programmatic API, and TypeScript types.
 
 ```ts
 // tokens.config.ts
-import { defineTokens } from "theme-unify";
+import { defineTokens } from "@jfitzsimmons2/theme-unify";
 
 export default defineTokens({
   meta: { name: "My Theme", darkModeSelector: ".dark" },
@@ -253,11 +253,11 @@ For full editor autocomplete on `preset.overrides` (every PrimeVue knob),
 import `defineTokens` from one of the per-base typed entries:
 
 ```ts
-import { defineTokens } from "theme-unify/aura"; // or /lara, /nora, /material
+import { defineTokens } from "@jfitzsimmons2/theme-unify/aura"; // or /lara, /nora, /material
 ```
 
 These require `@primeuix/themes` (an optional peer dependency). For
-custom presets, use the generic `theme-unify/typed` entry.
+custom presets, use the generic `@jfitzsimmons2/theme-unify/typed` entry.
 
 See the [consumer guide](docs/consumer-guide.md) and the [token-schema
 reference](docs/token-schema.md) for the full surface.
@@ -281,7 +281,7 @@ import {
   BUILTIN_PALETTES, BUILTIN_PALETTE_NAMES, isBuiltinPalette, resolveScale,
   // errors
   TokenValidationError, CircularReferenceError, UnresolvedRefError,
-} from "theme-unify";
+} from "@jfitzsimmons2/theme-unify";
 
 const tokens   = await loadTokens("./tokens.config.ts");   // load + validate
 const resolved = resolveRefs(tokens);                       // expand { ref }
@@ -292,7 +292,7 @@ const shortcutsCode = generateShortcuts(resolved);
 const palettesCode  = generatePalettes(resolved);
 
 // or get the raw object without serializing:
-import { buildPresetObject } from "theme-unify";
+import { buildPresetObject } from "@jfitzsimmons2/theme-unify";
 const presetObject = buildPresetObject(resolved);
 ```
 
@@ -307,7 +307,7 @@ swappers, …).
 
 ```
 packages/
-  core/         # CLI + generators + public API (npm: theme-unify)
+  core/         # CLI + generators + public API (npm: @jfitzsimmons2/theme-unify)
   playground/   # Vue 3 demo app using PrimeVue + UnoCSS with generated output
 docs/           # Contributor + consumer documentation
 ```

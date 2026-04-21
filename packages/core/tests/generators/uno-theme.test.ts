@@ -1,9 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { generateUnoTheme } from "../../src/generators/uno-theme.js";
 import { resolveRefs } from "../../src/resolver.js";
 import { validTokens } from "../fixtures/tokens.fixture.js";
+import { _resetEffectiveBuiltinWarnings } from "../../src/effective-builtins.js";
 
 describe("generateUnoTheme", () => {
+    beforeEach(() => _resetEffectiveBuiltinWarnings());
     const out = generateUnoTheme(resolveRefs(validTokens));
 
     it("emits darkMode as 'class' when strategy is class (default)", () => {
@@ -75,6 +77,118 @@ describe("generateUnoTheme", () => {
         expect(out).not.toContain("#9A8568");
     });
 
+    it("omits builtin palettes by default (no opt-in, not referenced)", () => {
+        // The default fixture references no builtins via semantic and
+        // does not opt any in via unocss.includeBuiltinPalettes, so
+        // none of the 22 shipped builtins should appear in `colors`.
+        expect(out).not.toMatch(/emerald:\s*\{/);
+        expect(out).not.toMatch(/lime:\s*\{/);
+        expect(out).not.toMatch(/purple:\s*\{/);
+        // ...and no builtin hex either
+        expect(out).not.toContain("#10b981");
+    });
+
+    it("emits referenced builtin palettes as CSS vars", () => {
+        const refOut = generateUnoTheme(
+            resolveRefs({
+                meta: { name: "M" },
+                primitive: { colors: {} },
+                semantic: { surface: { scale: "slate" } },
+            }),
+        );
+        expect(refOut).toMatch(/slate:\s*\{/);
+        expect(refOut).toContain("var(--p-slate-500)");
+        // Only `slate` — other builtins still excluded
+        expect(refOut).not.toMatch(/emerald:\s*\{/);
+    });
+
+    it("emits opted-in builtin palettes as CSS vars", () => {
+        const optOut = generateUnoTheme(
+            resolveRefs({
+                meta: { name: "M" },
+                primitive: { colors: {} },
+                unocss: { includeBuiltinPalettes: ["purple", "emerald"] },
+            }),
+        );
+        expect(optOut).toMatch(/purple:\s*\{/);
+        expect(optOut).toContain("var(--p-purple-500)");
+        expect(optOut).toMatch(/emerald:\s*\{/);
+        expect(optOut).toContain("var(--p-emerald-500)");
+        // Not opted in
+        expect(optOut).not.toMatch(/lime:\s*\{/);
+        // No hex duplication for opted-in palettes
+        expect(optOut).not.toContain("#10b981");
+    });
+
+    it("includes every builtin when includeBuiltinPalettes is `true`", () => {
+        const allOut = generateUnoTheme(
+            resolveRefs({
+                meta: { name: "M" },
+                primitive: { colors: {} },
+                unocss: { includeBuiltinPalettes: true },
+            }),
+        );
+        for (const name of ["emerald", "lime", "purple", "slate", "rose"]) {
+            expect(allOut).toMatch(new RegExp(`${name}:\\s*\\{`));
+            expect(allOut).toContain(`var(--p-${name}-500)`);
+        }
+    });
+
+    it("user palettes shadow builtins of the same name (vars win)", () => {
+        const shadowOut = generateUnoTheme(
+            resolveRefs({
+                meta: { name: "M" },
+                primitive: {
+                    colors: {
+                        red: {
+                            50: "#fff",
+                            100: "#fff",
+                            200: "#fff",
+                            300: "#fff",
+                            400: "#fff",
+                            500: "#abcdef",
+                            600: "#fff",
+                            700: "#fff",
+                            800: "#fff",
+                            900: "#fff",
+                            950: "#fff",
+                        },
+                    },
+                },
+            }),
+        );
+        // user `red` is emitted as vars (shadowing the builtin)
+        expect(shadowOut).toContain("var(--p-red-500)");
+        // builtin red hex must NOT appear
+        expect(shadowOut).not.toContain("#ef4444");
+    });
+
+    it("warns once when an opted-in builtin is shadowed by a user palette", () => {
+        const warnings: string[] = [];
+        const origWarn = console.warn;
+        console.warn = (msg: string) => warnings.push(msg);
+        try {
+            generateUnoTheme(
+                resolveRefs({
+                    meta: { name: "M" },
+                    primitive: {
+                        colors: {
+                            red: {
+                                50: "#fff", 100: "#fff", 200: "#fff", 300: "#fff",
+                                400: "#fff", 500: "#fff", 600: "#fff", 700: "#fff",
+                                800: "#fff", 900: "#fff", 950: "#fff",
+                            },
+                        },
+                    },
+                    unocss: { includeBuiltinPalettes: ["red"] },
+                }),
+            );
+        } finally {
+            console.warn = origWarn;
+        }
+        expect(warnings.some((w) => w.includes("shadows it"))).toBe(true);
+    });
+
     it("emits breakpoints / zIndex / transitions / animation when present", () => {
         expect(out).toContain("export const breakpoints");
         expect(out).toMatch(/md:\s*['"]768px['"]/);
@@ -89,22 +203,36 @@ describe("generateUnoTheme", () => {
         expect(out).toMatch(/['"]fade-in['"]/);
     });
 
-    it("omits breakpoints / zIndex / transitions / animation when absent", () => {
+    it("always emits every optional export (as empty {}) when absent", () => {
+        // Consumers statically import these names from the generated file,
+        // so each must always be defined — even when the corresponding
+        // primitive block is omitted from the user's tokens config.
         const minimal = generateUnoTheme(
             resolveRefs({
                 meta: { name: "M" },
                 primitive: { colors: {} },
             }),
         );
-        expect(minimal).not.toContain("export const breakpoints");
-        expect(minimal).not.toContain("export const zIndex");
-        expect(minimal).not.toContain("export const transitionProperty");
-        expect(minimal).not.toContain("export const transitionDuration");
-        expect(minimal).not.toContain("export const transitionTimingFunction");
-        expect(minimal).not.toContain("export const animation");
+        for (const name of [
+            "spacing",
+            "borderRadius",
+            "boxShadow",
+            "fontFamily",
+            "fontSize",
+            "lineHeight",
+            "fontWeight",
+            "breakpoints",
+            "zIndex",
+            "transitionProperty",
+            "transitionDuration",
+            "transitionTimingFunction",
+            "animation",
+        ]) {
+            expect(minimal).toContain(`export const ${name} = {`);
+        }
     });
 
-    it("emits each transition sub-bag independently", () => {
+    it("emits each transition sub-bag with values when only one is present", () => {
         const onlyDuration = generateUnoTheme(
             resolveRefs({
                 meta: { name: "M" },
@@ -114,8 +242,12 @@ describe("generateUnoTheme", () => {
                 },
             }),
         );
-        expect(onlyDuration).toContain("export const transitionDuration");
-        expect(onlyDuration).not.toContain("export const transitionProperty");
-        expect(onlyDuration).not.toContain("export const transitionTimingFunction");
+        expect(onlyDuration).toMatch(/export const transitionDuration = \{\s*base/);
+        // The other two are still emitted as empty objects so the export
+        // names stay stable for consumers.
+        expect(onlyDuration).toContain("export const transitionProperty = {} as const;");
+        expect(onlyDuration).toContain(
+            "export const transitionTimingFunction = {} as const;",
+        );
     });
 });

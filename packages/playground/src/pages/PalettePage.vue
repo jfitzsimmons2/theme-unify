@@ -5,9 +5,11 @@ import {
     builtinPalettes,
     referencedBuiltinPalettes,
     shadowedBuiltinPalettes,
+    semanticPalettes,
 } from '../generated/palettes'
 
 const colorSteps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const
+const surfaceSteps = [0, ...colorSteps] as const
 const customPaletteEntries = Object.entries(customPalettes) as Array<
     [string, Record<string, string>]
 >
@@ -16,6 +18,24 @@ const builtinPaletteEntries = Object.entries(builtinPalettes) as Array<
 >
 const referencedBuiltinSet = new Set<string>(referencedBuiltinPalettes)
 const shadowedBuiltinSet = new Set<string>(shadowedBuiltinPalettes)
+
+type SemanticEntry = (typeof semanticPalettes)[number]
+
+const semanticStepsFor = (entry: SemanticEntry): readonly number[] =>
+    entry.role === 'surface' ? surfaceSteps : colorSteps
+
+const semanticSourceLabel = (entry: SemanticEntry): string => {
+    const fmt = (src: string | null | undefined, kind: string | undefined): string => {
+        if (!src) return '(inline scale)'
+        return kind === 'builtin' ? `${src} (builtin)` : src
+    }
+    if (entry.role === 'surface') {
+        const light = fmt(entry.source, entry.sourceKind)
+        const dark = fmt(entry.darkSource ?? entry.source, entry.darkSourceKind ?? entry.sourceKind)
+        return light === dark ? light : `${light} / ${dark} (dark)`
+    }
+    return fmt(entry.source, entry.sourceKind)
+}
 </script>
 
 <template>
@@ -23,6 +43,32 @@ const shadowedBuiltinSet = new Set<string>(shadowedBuiltinPalettes)
         <h2 class="text-xl font-semibold flex items-center gap-2">
             <i class="i-prime-palette" /> Color Palette
         </h2>
+
+        <Card>
+            <template #title>Semantic palettes ({{ semanticPalettes.length }})</template>
+            <template #subtitle>
+                Roles from <code>semantic</code> in tokens.config.ts. Swatches resolve at runtime via
+                <code>--p-{role}-{step}</code> CSS variables, so preset overrides repaint these
+                instantly.
+            </template>
+            <template #content>
+                <div class="flex flex-col gap-4">
+                    <div v-for="entry in semanticPalettes" :key="entry.role">
+                        <p class="text-sm font-medium mb-1 text-muted">
+                            {{ entry.role }}
+                            <span class="text-xs text-surface-500 dark:text-surface-400">
+                                → {{ semanticSourceLabel(entry) }}
+                            </span>
+                        </p>
+                        <div class="flex gap-1">
+                            <div v-for="step in semanticStepsFor(entry)" :key="step"
+                                :class="[`bg-${entry.role}-${step}`, 'w-10 h-10 rounded-sm border border-surface-200 dark:border-surface-700']"
+                                :title="`${entry.role}-${step}`" />
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </Card>
 
         <Card>
             <template #title>Custom palettes ({{ customPaletteEntries.length }})</template>
@@ -40,8 +86,7 @@ const shadowedBuiltinSet = new Set<string>(shadowedBuiltinPalettes)
                         </p>
                         <div class="flex gap-1">
                             <div v-for="step in colorSteps" :key="step"
-                                class="w-10 h-10 rounded-sm border border-surface-200 dark:border-surface-700"
-                                :style="{ backgroundColor: scale[String(step)] }"
+                                :class="[`bg-${name}-${step}`, 'w-10 h-10 rounded-sm border border-surface-200 dark:border-surface-700']"
                                 :title="`${name}-${step} ${scale[String(step)]}`" />
                         </div>
                     </div>
@@ -65,8 +110,7 @@ const shadowedBuiltinSet = new Set<string>(shadowedBuiltinPalettes)
                         </p>
                         <div class="flex gap-1">
                             <div v-for="step in colorSteps" :key="step"
-                                class="w-10 h-10 rounded-sm border border-surface-200 dark:border-surface-700"
-                                :style="{ backgroundColor: scale[String(step)] }"
+                                :class="[`bg-${name}-${step}`, 'w-10 h-10 rounded-sm border border-surface-200 dark:border-surface-700']"
                                 :title="`${name}-${step} ${scale[String(step)]}`" />
                         </div>
                     </div>

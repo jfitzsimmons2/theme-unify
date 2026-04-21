@@ -14,6 +14,7 @@ import {
 } from "./generators/palettes.js";
 import { writeOutput } from "./write-output.js";
 import { TokenValidationError } from "./errors.js";
+import { BUILTIN_PALETTE_NAMES } from "./builtin-palettes.js";
 import pkg from "../package.json" with { type: "json" };
 
 const VERSION = (pkg as { version: string }).version;
@@ -30,7 +31,7 @@ const log = (msg: string = ""): void => {
 const fileLink = (absPath: string): string =>
     pathToFileURL(absPath).href;
 
-const STARTER_TEMPLATE = `import { defineTokens } from "theme-unify";
+const STARTER_TEMPLATE = `import { defineTokens } from "@jfitzsimmons2/theme-unify";
 
 export default defineTokens({
     meta: {
@@ -286,8 +287,18 @@ cli
                 }
             }
 
+            log("\nOpt-in builtin palettes (unocss.includeBuiltinPalettes):");
+            if (catalog.optInBuiltins.length === 0) {
+                log("  (none — set unocss.includeBuiltinPalettes to opt extras in)");
+            } else {
+                for (const name of catalog.optInBuiltins) {
+                    log(`  • ${name}`);
+                    log(fmt(catalog.builtin[name]));
+                }
+            }
+
             log("\nAll available builtin palette names:");
-            const all = Object.keys(catalog.builtin);
+            const all = [...BUILTIN_PALETTE_NAMES];
             const cols = 6;
             for (let i = 0; i < all.length; i += cols) {
                 log(
@@ -298,7 +309,9 @@ cli
                         .join(""),
                 );
             }
-            log(`\n(${all.length} builtins, ${customNames.length} custom)\n`);
+            log(
+                `\n(${all.length} builtins available, ${Object.keys(catalog.builtin).length} shipped, ${customNames.length} custom)\n`,
+            );
         } catch (err) {
             if (err instanceof TokenValidationError) {
                 console.error(err.message);

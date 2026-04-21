@@ -18,6 +18,34 @@ describe("generatePreset", () => {
         expect(prim.oatmeal["500"]).toBe("#9A8568");
     });
 
+    it("emits opt-in builtin palettes under primitive", () => {
+        const obj = buildPresetObject(
+            resolveRefs({
+                meta: { name: "T" },
+                primitive: { colors: {} },
+                unocss: { includeBuiltinPalettes: ["purple"] },
+            }),
+        );
+        const prim = obj.primitive as Record<string, Record<string, string>>;
+        expect(prim.purple).toBeDefined();
+        expect(prim.purple["500"]).toMatch(/^#[0-9a-fA-F]{6}$/);
+        // Not opted in
+        expect(prim.lime).toBeUndefined();
+    });
+
+    it("emits referenced builtin palettes under primitive", () => {
+        const obj = buildPresetObject(
+            resolveRefs({
+                meta: { name: "T" },
+                primitive: { colors: {} },
+                semantic: { surface: { scale: "slate" } },
+            }),
+        );
+        const prim = obj.primitive as Record<string, Record<string, string>>;
+        expect(prim.slate).toBeDefined();
+        expect(prim.slate["500"]).toMatch(/^#[0-9a-fA-F]{6}$/);
+    });
+
     it("emits non-color primitives (spacing/borderRadius/shadow/font/fontWeight)", () => {
         const obj = buildPresetObject(resolveRefs(validTokens));
         const prim = obj.primitive as Record<string, Record<string, string>>;

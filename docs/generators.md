@@ -95,30 +95,46 @@ Output (default `uno-theme.ts`) exports named consts:
 - `darkMode` — `"class"` or `"media"`, reflecting `meta.darkModeStrategy`.
   Pass this into `presetUno({ dark: darkMode })` (or equivalent) so the
   `dark:` variant activates via the matching mechanism.
-- `colors` — every palette PrimeVue exposes, mapped to
-  `var(--p-{name}-{step})`. Includes user palettes referenced by
-  `semantic`, every builtin actually referenced, the `surface` palette
-  (with step `0`), and one entry per `semantic.extra.*` role plus
-  `primary`.
+- `colors` — every palette consumers can use as `bg/text/border-{name}-{step}`:
+  - User palettes from `primitive.colors` → `var(--p-{name}-{step})`.
+  - Builtin palettes referenced by `semantic` → `var(--p-{name}-{step})`
+    (the preset emits matching CSS vars).
+  - Builtin palettes opted in via
+    [`unocss.includeBuiltinPalettes`](token-schema.md#unocssincludebuiltinpalettes)
+    → `var(--p-{name}-{step})`. The preset emits matching CSS vars for
+    each opted-in palette, so there is no hex duplication. User
+    palettes that shadow a builtin name always win and stay
+    var-backed; opting in such a name emits a one-time `console.warn`.
+  - **Builtins are NOT emitted by default.** Unreferenced, un-opted-in
+    palettes are excluded entirely — utilities like `bg-emerald-500`
+    only work when `emerald` is referenced via `semantic` or listed in
+    `unocss.includeBuiltinPalettes`. Set `includeBuiltinPalettes: true`
+    to expose every shipped builtin.
+  - The `surface` palette (with step `0`) and one entry per
+    `semantic.extra.*` role plus `primary`, all var-backed.
 - `spacing` — `Record<key, var(--p-spacing-{key}))`.
 - `borderRadius` — combined `primitive.radii` and Aura's default radii
   keys, all as `var(--p-border-radius-{key})`.
 - `boxShadow` — `var(--p-shadow-{key})`.
-- `fontFamily`, `fontSize`, `lineHeight`, `fontWeight` — emitted only
-  when the corresponding `primitive` field is set, all as `var(--p-*)`.
+- `fontFamily`, `fontSize`, `lineHeight`, `fontWeight` — `var(--p-*)`
+  values keyed off the corresponding `primitive` fields.
 - `breakpoints` — literal `Record<string, string>` from
   `primitive.breakpoints`. Plugs into UnoCSS `theme.breakpoints`.
 - `zIndex` — literal `Record<string, string>` from `primitive.zIndex`.
   Plugs into UnoCSS `theme.zIndex`; the same values are mirrored into
   the PrimeVue preset's `semantic.zIndex` block.
 - `transitionProperty` / `transitionDuration` /
-  `transitionTimingFunction` — literal records emitted independently
-  per sub-bag of `primitive.transitions`. Map onto UnoCSS
-  `theme.transitionProperty` / `theme.transitionDuration` /
-  `theme.transitionTimingFunction`.
+  `transitionTimingFunction` — literal records, one per sub-bag of
+  `primitive.transitions`. Map onto UnoCSS `theme.transitionProperty` /
+  `theme.transitionDuration` / `theme.transitionTimingFunction`.
 - `animation` — literal `Record<string, string>` from
   `primitive.animations`. Plugs into UnoCSS `theme.animation`.
   Author-supplied `@keyframes` declarations are still required.
+
+> Every export above is **always emitted**, even when its primitive
+> block is omitted from the user's tokens config. Absent sections are
+> emitted as empty objects (`{} as const`), so consumers can safely
+> destructure-import every name without conditional fallbacks.
 
 These plug directly into UnoCSS's `theme` config. Because every value is
 a CSS variable, swapping the PrimeVue preset at runtime cascades to
@@ -150,16 +166,18 @@ strings should already include any `dark:` prefix where needed.
 Source: [generators/palettes.ts](../packages/core/src/generators/palettes.ts).
 Exports: `generatePalettes`, `collectPalettes`, type `PaletteCatalog`.
 
-Output (default `palettes.ts`) emits five `as const` exports describing
+Output (default `palettes.ts`) emits seven `as const` exports describing
 every color scale available to the config:
 
 | Export | Shape | Contents |
 | --- | --- | --- |
 | `customPalettes` | `Record<name, ColorScale>` | All entries from `primitive.colors` with their hex values |
-| `builtinPalettes` | `Record<name, ColorScale>` | All 22 builtin (Tailwind v3 / Aura) palettes with hex values |
+| `builtinPalettes` | `Record<name, ColorScale>` | Builtin palettes actually shipped — referenced via `semantic` plus those opted in via `unocss.includeBuiltinPalettes`. Hex values. |
 | `referencedBuiltinPalettes` | `string[]` | Builtin names actually used by `semantic.primary`, `semantic.surface.{scale,darkScale}`, or `semantic.extra.*` |
+| `optInBuiltinPalettes` | `string[]` | Builtin names opted in via `unocss.includeBuiltinPalettes` (excluding any already referenced or shadowed by user palettes) |
 | `shadowedBuiltinPalettes` | `string[]` | Custom palette names that shadow a builtin of the same name |
 | `availableBuiltinPaletteNames` | `string[]` | Full list of builtin names you can reference |
+| `semanticPalettes` | `SemanticPaletteEntry[]` | Each semantic role (`primary`, `surface`, then each canonicalized `extra` role) with its backing scale name and source kind (`custom` / `builtin` / `inline`). `surface` entries also include `darkSource` / `darkSourceKind`. Render swatches via `bg-{role}-{step}` to reflect runtime preset overrides. |
 
 Use it to render swatches in a docs/preview UI without hardcoding palette
 names. The CLI's [`colors` subcommand](cli.md#colors-subcommand) prints

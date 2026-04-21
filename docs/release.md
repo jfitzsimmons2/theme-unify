@@ -18,7 +18,7 @@ Consumers install:
 
 ## Versioning
 
-`theme-unify` follows semver. The version lives in
+`@jfitzsimmons2/theme-unify` follows semver. The version lives in
 [`packages/core/package.json`](../packages/core/package.json) and is
 imported into the CLI at runtime, so there is exactly one source of
 truth. Changesets bumps it automatically.
@@ -34,7 +34,7 @@ Every PR with a user-visible change must include a changeset:
 pnpm changeset
 ```
 
-Pick `theme-unify`, choose patch / minor / major, write a one-line
+Pick `@jfitzsimmons2/theme-unify`, choose patch / minor / major, write a one-line
 summary in the present tense (it lands in `CHANGELOG.md`), and commit
 the generated `.changeset/<name>.md` file with the rest of your change.
 
@@ -54,8 +54,8 @@ playground are **not** published.
 Verify the tarball contents locally:
 
 ```bash
-pnpm --filter theme-unify build
-pnpm --filter theme-unify pack --dry-run
+pnpm --filter @jfitzsimmons2/theme-unify build
+pnpm --filter @jfitzsimmons2/theme-unify pack --dry-run
 ```
 
 [`tsup.config.ts`](../packages/core/tsup.config.ts) emits both ESM and
@@ -103,7 +103,7 @@ Configure these in **Settings → Secrets and variables → Actions**:
 
 | Secret | Used by | Purpose |
 | --- | --- | --- |
-| `NPM_TOKEN` | both release workflows | npm automation token with publish rights for `theme-unify`. Must be an **Automation** token if 2FA is enabled on the account. |
+| `NPM_TOKEN` | both release workflows | npm automation token with publish rights for `@jfitzsimmons2/theme-unify`. Must be an **Automation** token if 2FA is enabled on the account. |
 | `RELEASE_TOKEN` *(optional)* | `release.yml` | Personal access token used to push the version commit + tags back to `main` if branch protection rules block `GITHUB_TOKEN`. Falls back to `GITHUB_TOKEN` when unset. |
 
 ## Local dry-run
@@ -115,7 +115,7 @@ pnpm install
 pnpm test
 pnpm -r build
 pnpm changeset status --verbose
-pnpm --filter theme-unify pack --dry-run
+pnpm --filter @jfitzsimmons2/theme-unify pack --dry-run
 ```
 
 To preview a snapshot version without publishing:

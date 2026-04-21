@@ -1,5 +1,5 @@
 ---
-"theme-unify": patch
+"@jfitzsimmons2/theme-unify": patch
 ---
 
 First

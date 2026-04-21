@@ -1,7 +1,7 @@
 import type { ResolvedTokens } from "../types.js";
 import { COLOR_STEPS } from "../types.js";
 import { fileHeader, serializeValue, canonicalizeSemanticRole } from "./utils.js";
-import { isBuiltinPalette } from "../builtin-palettes.js";
+import { collectEffectiveBuiltins } from "../effective-builtins.js";
 
 /**
  * Generate UnoCSS theme entries that point at the `--p-*` CSS variables
@@ -11,9 +11,19 @@ import { isBuiltinPalette } from "../builtin-palettes.js";
  * Emitted exports: `darkMode`, `colors`, `spacing`, `borderRadius`,
  * `boxShadow`, `fontFamily`, `fontSize`, `lineHeight`, `fontWeight`,
  * `breakpoints`, `zIndex`, `transitionProperty`, `transitionDuration`,
- * `transitionTimingFunction`, `animation`. Each export is emitted only
- * when the corresponding primitive block is present. `darkMode` is
- * always emitted and reflects `meta.darkModeStrategy`.
+ * `transitionTimingFunction`, `animation`. **All exports are always
+ * emitted** so consumers can statically import every name; sections
+ * whose primitive block is absent are emitted as empty `{}` (or `""`
+ * for the typography scalars). `darkMode` reflects
+ * `meta.darkModeStrategy` and defaults to `'class'`.
+ *
+ * The `colors` export contains: every user-defined palette in
+ * `primitive.colors`, plus the subset of builtin palettes that are
+ * either referenced via `semantic` or opted in via
+ * `unocss.includeBuiltinPalettes`. Builtins are exposed as
+ * `var(--p-{name}-{step})` references — the preset emits the matching
+ * CSS variables. Set `unocss.includeBuiltinPalettes: true` to expose
+ * every shipped builtin, or pass an array to opt in a subset.
  */
 export function generateUnoTheme(resolved: ResolvedTokens): string {
     const sections: string[] = [fileHeader({ meta: resolved.meta })];
@@ -33,13 +43,13 @@ export function generateUnoTheme(resolved: ResolvedTokens): string {
         colors[name] = scaleVarObject(name);
     }
 
-    // Builtin palettes referenced via semantic also need to resolve
-    const referencedScales = collectReferencedScaleNames(resolved);
-    for (const name of referencedScales) {
+    // Builtins that are referenced via semantic OR opted into via
+    // `unocss.includeBuiltinPalettes`. Both flow through the preset as
+    // `--p-{name}-{step}` CSS variables, so we reference them the same
+    // way as user palettes.
+    for (const name of collectEffectiveBuiltins(resolved)) {
         if (colors[name]) continue;
-        if (isBuiltinPalette(name)) {
-            colors[name] = scaleVarObject(name);
-        }
+        colors[name] = scaleVarObject(name);
     }
 
     // Semantic roles
@@ -62,128 +72,112 @@ export function generateUnoTheme(resolved: ResolvedTokens): string {
     sections.push("");
 
     // ----- spacing -----
+    const spacing: Record<string, string> = {};
     if (resolved.primitive.spacing) {
-        const spacing: Record<string, string> = {};
         for (const key of Object.keys(resolved.primitive.spacing)) {
             spacing[key] = `var(--p-spacing-${key})`;
         }
-        sections.push(
-            `export const spacing = ${serializeValue(spacing, 0)} as const;`,
-        );
-        sections.push("");
     }
+    sections.push(`export const spacing = ${serializeValue(spacing, 0)} as const;`);
+    sections.push("");
 
     // ----- borderRadius -----
+    const borderRadius: Record<string, string> = {};
     if (resolved.primitive.radii) {
-        const borderRadius: Record<string, string> = {};
         for (const key of Object.keys(resolved.primitive.radii)) {
             borderRadius[key] = `var(--p-border-radius-${key})`;
         }
-        sections.push(
-            `export const borderRadius = ${serializeValue(borderRadius, 0)} as const;`,
-        );
-        sections.push("");
     }
+    sections.push(
+        `export const borderRadius = ${serializeValue(borderRadius, 0)} as const;`,
+    );
+    sections.push("");
 
     // ----- boxShadow -----
+    const boxShadow: Record<string, string> = {};
     if (resolved.primitive.shadows) {
-        const boxShadow: Record<string, string> = {};
         for (const key of Object.keys(resolved.primitive.shadows)) {
             boxShadow[key] = `var(--p-shadow-${key})`;
         }
-        sections.push(
-            `export const boxShadow = ${serializeValue(boxShadow, 0)} as const;`,
-        );
-        sections.push("");
     }
+    sections.push(
+        `export const boxShadow = ${serializeValue(boxShadow, 0)} as const;`,
+    );
+    sections.push("");
 
     // ----- fontFamily -----
-    if (resolved.primitive.typography?.fontFamily) {
-        sections.push(
-            `export const fontFamily = ${serializeValue({ sans: "var(--p-font-family)" }, 0)} as const;`,
-        );
-        sections.push("");
-    }
+    const fontFamily: Record<string, string> = resolved.primitive.typography?.fontFamily
+        ? { sans: "var(--p-font-family)" }
+        : {};
+    sections.push(
+        `export const fontFamily = ${serializeValue(fontFamily, 0)} as const;`,
+    );
+    sections.push("");
 
     // ----- fontSize / lineHeight -----
     const t = resolved.primitive.typography;
+    const fontSize: Record<string, string | [string, string]> = {};
+    const lineHeight: Record<string, string> = {};
     if (t?.baseFontSize || t?.baseLineHeight) {
-        const fontSize: Record<string, string | [string, string]> = {
-            base: t?.baseLineHeight
-                ? ["var(--p-font-size)", "var(--p-font-line-height)"]
-                : "var(--p-font-size)",
-        };
-        sections.push(
-            `export const fontSize = ${serializeValue(fontSize, 0)} as const;`,
-        );
-        sections.push("");
+        fontSize["base"] = t?.baseLineHeight
+            ? ["var(--p-font-size)", "var(--p-font-line-height)"]
+            : "var(--p-font-size)";
         if (t?.baseLineHeight) {
-            sections.push(
-                `export const lineHeight = ${serializeValue({ base: "var(--p-font-line-height)" }, 0)} as const;`,
-            );
-            sections.push("");
+            lineHeight["base"] = "var(--p-font-line-height)";
         }
     }
+    sections.push(`export const fontSize = ${serializeValue(fontSize, 0)} as const;`);
+    sections.push("");
+    sections.push(
+        `export const lineHeight = ${serializeValue(lineHeight, 0)} as const;`,
+    );
+    sections.push("");
 
     // ----- fontWeight -----
+    const fontWeight: Record<string, string> = {};
     if (resolved.primitive.fontWeight) {
-        const fontWeight: Record<string, string> = {};
         for (const key of Object.keys(resolved.primitive.fontWeight)) {
             fontWeight[key] = `var(--p-font-weight-${key})`;
         }
-        sections.push(
-            `export const fontWeight = ${serializeValue(fontWeight, 0)} as const;`,
-        );
-        sections.push("");
     }
+    sections.push(
+        `export const fontWeight = ${serializeValue(fontWeight, 0)} as const;`,
+    );
+    sections.push("");
 
     // ----- breakpoints / zIndex / transitions / animations -----
     // These export literal values (not `--p-*` vars) — UnoCSS consumes
     // them directly at build time, and PrimeVue components either don't
     // care (breakpoints/transitions/animations) or read them via
     // `semantic.zIndex` (handled in the preset generator).
-    if (resolved.primitive.breakpoints) {
-        sections.push(
-            `export const breakpoints = ${serializeValue(resolved.primitive.breakpoints, 0)} as const;`,
-        );
-        sections.push("");
-    }
+    sections.push(
+        `export const breakpoints = ${serializeValue(resolved.primitive.breakpoints ?? {}, 0)} as const;`,
+    );
+    sections.push("");
 
-    if (resolved.primitive.zIndex) {
-        sections.push(
-            `export const zIndex = ${serializeValue(resolved.primitive.zIndex, 0)} as const;`,
-        );
-        sections.push("");
-    }
+    sections.push(
+        `export const zIndex = ${serializeValue(resolved.primitive.zIndex ?? {}, 0)} as const;`,
+    );
+    sections.push("");
 
-    if (resolved.primitive.transitions) {
-        const tr = resolved.primitive.transitions;
-        if (tr.property) {
-            sections.push(
-                `export const transitionProperty = ${serializeValue(tr.property, 0)} as const;`,
-            );
-            sections.push("");
-        }
-        if (tr.duration) {
-            sections.push(
-                `export const transitionDuration = ${serializeValue(tr.duration, 0)} as const;`,
-            );
-            sections.push("");
-        }
-        if (tr.timingFunction) {
-            sections.push(
-                `export const transitionTimingFunction = ${serializeValue(tr.timingFunction, 0)} as const;`,
-            );
-            sections.push("");
-        }
-    }
+    const tr = resolved.primitive.transitions;
+    sections.push(
+        `export const transitionProperty = ${serializeValue(tr?.property ?? {}, 0)} as const;`,
+    );
+    sections.push("");
+    sections.push(
+        `export const transitionDuration = ${serializeValue(tr?.duration ?? {}, 0)} as const;`,
+    );
+    sections.push("");
+    sections.push(
+        `export const transitionTimingFunction = ${serializeValue(tr?.timingFunction ?? {}, 0)} as const;`,
+    );
+    sections.push("");
 
-    if (resolved.primitive.animations) {
-        sections.push(
-            `export const animation = ${serializeValue(resolved.primitive.animations, 0)} as const;`,
-        );
-        sections.push("");
-    }
+    sections.push(
+        `export const animation = ${serializeValue(resolved.primitive.animations ?? {}, 0)} as const;`,
+    );
+    sections.push("");
 
     return sections.join("\n");
 }
@@ -202,22 +196,4 @@ function surfaceVarObject(): Record<string, string> {
         obj[String(step)] = `var(--p-surface-${step})`;
     }
     return obj;
-}
-
-function collectReferencedScaleNames(resolved: ResolvedTokens): Set<string> {
-    const names = new Set<string>();
-    const sem = resolved.semantic;
-    if (!sem) return names;
-    if (typeof sem.primary === "string") names.add(sem.primary);
-    if (sem.surface) {
-        if (typeof sem.surface.scale === "string") names.add(sem.surface.scale);
-        if (typeof sem.surface.darkScale === "string")
-            names.add(sem.surface.darkScale);
-    }
-    if (sem.extra) {
-        for (const ref of Object.values(sem.extra)) {
-            if (typeof ref === "string") names.add(ref);
-        }
-    }
-    return names;
 }

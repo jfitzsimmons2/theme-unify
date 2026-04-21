@@ -11,7 +11,7 @@
  *   generateUnoTheme,
  *   generateShortcuts,
  *   generatePalettes,
- * } from "theme-unify";
+ * } from "@jfitzsimmons2/theme-unify";
  * ```
  *
  * Most consumers only need {@link defineTokens} (in their config file)
@@ -70,6 +70,12 @@ export {
     resolveScale,
 } from "./builtin-palettes.js";
 export type { BuiltinPaletteName } from "./builtin-palettes.js";
+
+export {
+    collectEffectiveBuiltins,
+    collectReferencedBuiltins,
+    collectOptInBuiltins,
+} from "./effective-builtins.js";
 
 // ---- Errors ----
 

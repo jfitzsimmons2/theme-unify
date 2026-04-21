@@ -1,6 +1,6 @@
 # Project change suggestions
 
-Concrete proposals to make `theme-unify` easier to **adopt**, **author
+Concrete proposals to make `@jfitzsimmons2/theme-unify` easier to **adopt**, **author
 configs in**, and **integrate** into downstream projects. Ordered
 roughly by user-visible impact / effort ratio. Each item lists the
 *pain point* it addresses, the *proposed change*, and the *trade-offs*
@@ -10,12 +10,12 @@ so you can cherry-pick.
 
 ## 1. Promote `defineTypedTokens` into the published package — ✅ shipped in 0.3.0
 
-Shipped as five new entry points: `theme-unify/typed` (generic
-`defineTypedTokens<Preset>()`) plus `theme-unify/aura`,
-`theme-unify/lara`, `theme-unify/nora`, and `theme-unify/material`
+Shipped as five new entry points: `@jfitzsimmons2/theme-unify/typed` (generic
+`defineTypedTokens<Preset>()`) plus `@jfitzsimmons2/theme-unify/aura`,
+`@jfitzsimmons2/theme-unify/lara`, `@jfitzsimmons2/theme-unify/nora`, and `@jfitzsimmons2/theme-unify/material`
 (each re-exports `defineTokens` pre-bound to that PrimeUix preset).
 `@primeuix/themes` is now an optional peer dependency, so the bare
-`theme-unify` import remains zero-dep.
+`@jfitzsimmons2/theme-unify` import remains zero-dep.
 
 ---
 
@@ -81,9 +81,9 @@ extension is a meaningful sunk cost — defer until usage justifies it.
 `DeepTokenValue<T>` and `TypedThemeUnifyConfig<Preset>` now live in
 core at [`packages/core/src/typed.ts`](packages/core/src/typed.ts) and
 are consumed by the per-base entries shipped under #1. The bare
-`theme-unify` entry intentionally keeps `PresetOverrides` as
+`@jfitzsimmons2/theme-unify` entry intentionally keeps `PresetOverrides` as
 `Record<string, unknown>` so the core import stays peer-free —
-autocomplete is opt-in via `theme-unify/aura` (etc.).
+autocomplete is opt-in via `@jfitzsimmons2/theme-unify/aura` (etc.).
 
 ---
 
@@ -126,7 +126,7 @@ need lands (e.g. someone wanting a Figma JSON export).
 config to find what produced it.
 
 **Proposal.** In each generated file, emit a leading comment with the
-absolute config path, the `theme-unify` version, and a UTC timestamp.
+absolute config path, the `@jfitzsimmons2/theme-unify` version, and a UTC timestamp.
 For each generated semantic scale, append `// from semantic.primary
 ("brand")`. Consider a `--source-map` flag that emits a sibling
 `.map.json` mapping output keys back to config paths.
@@ -180,7 +180,7 @@ Solid variants until requested). Test it as part of release CI.
 docs sites, validators in other languages) cannot consume the config.
 
 **Proposal.** Generate a JSON Schema from the TS types (e.g. via
-`ts-json-schema-generator`). Publish to `theme-unify/schema.json` and
+`ts-json-schema-generator`). Publish to `@jfitzsimmons2/theme-unify/schema.json` and
 a Schema Store entry so JSON-mode editors get validation.
 
 **Trade-offs.** JSON Schema cannot express `DeepTokenValue<...>` so
@@ -214,7 +214,7 @@ who use them risk breakage.
 
 - Document them as part of the **stable** public API (prefer this;
   they're useful for runtime swap and catalog UIs).
-- Move them to `theme-unify/internals` with a "no semver guarantee"
+- Move them to `@jfitzsimmons2/theme-unify/internals` with a "no semver guarantee"
   warning.
 
 **Trade-offs.** Either way the change is mostly a docs + JSDoc
@@ -228,7 +228,7 @@ update. Pick stability and write the contract down.
 preset has to roll their own fixtures.
 
 **Proposal.** Export the playground's resolved tokens (or a minimal
-fixture) under `theme-unify/fixtures` so consumers can `import` known-
+fixture) under `@jfitzsimmons2/theme-unify/fixtures` so consumers can `import` known-
 good inputs into their own test suite.
 
 **Trade-offs.** Adds files to the published tarball. Use `exports`
@@ -242,7 +242,7 @@ sub-paths and `files` glob to keep the increase small (<5kB).
 `unocss` versions are tested.
 
 **Proposal.** Maintain a `COMPATIBILITY.md` (or a section in the
-README) listing the known-good versions for each `theme-unify`
+README) listing the known-good versions for each `@jfitzsimmons2/theme-unify`
 release. CI runs against the latest of each.
 
 **Trade-offs.** Maintenance overhead. Worth it once any of the
