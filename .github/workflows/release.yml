@@ -35,11 +35,6 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      # npm >= 11.5.1 is required for OIDC trusted publishing.
-      # `changeset publish` shells out to `npm publish` under the hood.
-      - name: Upgrade npm for trusted publishing
-        run: npm install -g npm@latest
-
       - name: Build Packages
         run: pnpm --filter @jfitzsimmons2/theme-unify run build
 
