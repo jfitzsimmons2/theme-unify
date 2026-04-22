@@ -68,6 +68,10 @@ jobs:
         # Bumps versions, regenerates CHANGELOG.md, deletes consumed
         # `.changeset/*.md` files. No commit yet.
         run: pnpm changeset version
+        env:
+          # Required by @changesets/changelog-github to fetch PR/commit
+          # metadata from the GitHub API when generating CHANGELOG entries.
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Publish to npm
         if: steps.changeset_status.outputs.count != '0'
