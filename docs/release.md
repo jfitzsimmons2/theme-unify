@@ -1,6 +1,151 @@
 # Release
 
 Releases are automated with
+[Changesets](https://github.com/changesets/changesets) and the
+[`changesets/action`](https://github.com/changesets/action) GitHub
+Action. There is no manual `pnpm publish` step in the normal flow.
+
+## Branches
+
+| Branch | npm dist-tag | Trigger | Tag git? | Consumes changesets? |
+| --- | --- | --- | --- | --- |
+| `main` | `latest` | push (any merge) | yes (`vX.Y.Z`) | yes |
+
+Consumers install:
+
+- `npm i @jfitzsimmons2/theme-unify` — stable (`latest`).
+
+## Versioning
+
+`@jfitzsimmons2/theme-unify` follows semver. The version lives in
+[`packages/core/package.json`](../packages/core/package.json) and is
+imported into the CLI at runtime, so there is exactly one source of
+truth. Changesets bumps it automatically.
+
+See [contributing.md](contributing.md#public-api-stability) for the
+patch / minor / major rules.
+
+## Adding a changeset (per PR)
+
+Every PR with a user-visible change must include a changeset:
+
+```bash
+pnpm changeset
+```
+
+Pick `@jfitzsimmons2/theme-unify`, choose patch / minor / major, write a
+one-line summary in the present tense (it lands in `CHANGELOG.md`), and
+commit the generated `.changeset/<name>.md` file with the rest of your
+change.
+
+For repo-internal-only PRs (docs, tests, CI, playground tweaks,
+no-observable-effect refactors), skip the changeset. CI does not
+require one.
+
+See [`.changeset/README.md`](../.changeset/README.md) for details.
+
+## What ships
+
+The `files` field in
+[`packages/core/package.json`](../packages/core/package.json) restricts
+the published tarball to `dist/`. Source files, tests, and the
+playground are **not** published.
+
+Verify the tarball contents locally:
+
+```bash
+pnpm --filter @jfitzsimmons2/theme-unify build
+pnpm --filter @jfitzsimmons2/theme-unify pack --dry-run
+```
+
+[`tsup.config.ts`](../packages/core/tsup.config.ts) emits both ESM and
+CJS plus types for every `exports` entry (`.`, `./vite`, `./typed`,
+`./aura`, `./lara`, `./nora`, `./material`).
+
+## Stable releases — push to `main`
+
+[`.github/workflows/release.yml`](../.github/workflows/release.yml) runs
+on every push to `main`. It uses the official
+[`changesets/action`](https://github.com/changesets/action), which
+implements a two-phase, PR-based release flow:
+
+1. **Setup.** Checkout (full history), install pnpm with
+   [`pnpm/action-setup@v4`](https://github.com/pnpm/action-setup) — the
+   pnpm version is read from the `packageManager` field in the root
+   [`package.json`](../package.json) — set up Node.js 22 with the npm
+   registry configured, then `pnpm install --frozen-lockfile`.
+2. **Build.** `pnpm run build` (which runs `pnpm -r build`) so each
+   package's `dist/` is ready before publish.
+3. **Changesets action.** `changesets/action@v1` does one of three
+   things depending on repo state:
+   - **Pending changesets exist.** It opens (or updates) a PR titled
+     `chore(release): version packages`. The PR consumes
+     `.changeset/*.md`, bumps versions, and regenerates `CHANGELOG.md`.
+     Review and merge that PR when you're ready to ship.
+   - **The version PR was just merged.** It runs `pnpm run ci:publish`
+     (which is `changeset publish`), publishing the bumped packages to
+     npm under the `latest` dist-tag and creating annotated git tags
+     `vX.Y.Z`.
+   - **Nothing pending and nothing to publish.** It exits cleanly.
+     Doc-only and chore merges are no-ops.
+
+Concurrency is keyed on `${{ github.workflow }}-${{ github.ref }}` so
+overlapping pushes don't race.
+
+### Day-to-day developer flow
+
+1. Make a change in `packages/core` on a feature branch.
+2. From the repo root, run `pnpm changeset`. Select
+   `@jfitzsimmons2/theme-unify`, pick the bump type, write the summary.
+3. Commit the generated `.changeset/<name>.md` alongside your code.
+4. Open and merge a PR to `main`.
+5. The action opens a `chore(release): version packages` PR. When
+   that PR is merged, packages publish to npm automatically.
+
+## Required secrets
+
+Configure these in **Settings → Secrets and variables → Actions**:
+
+| Secret | Used by | Purpose |
+| --- | --- | --- |
+| `NPM_TOKEN` | `release.yml` | npm automation token with publish rights for `@jfitzsimmons2/theme-unify`. Must be an **Automation** token if 2FA is enabled on the account. |
+| `GITHUB_TOKEN` | `release.yml` | Provided automatically by Actions. The workflow grants it `contents: write` and `pull-requests: write` so the action can push the version PR and create release tags. |
+
+## Local dry-run
+
+Useful before relying on CI for the first time:
+
+```bash
+pnpm install
+pnpm test
+pnpm -r build
+pnpm changeset status --verbose
+pnpm --filter @jfitzsimmons2/theme-unify pack --dry-run
+```
+
+## Manual fallback
+
+If automation is broken and a release must go out:
+
+1. `pnpm install && pnpm -r build && pnpm test`.
+2. `pnpm changeset version` (or edit `packages/core/package.json`
+   directly for a hotfix).
+3. `cd packages/core && pnpm publish --access public`.
+4. `git tag vX.Y.Z && git push --tags`.
+
+The root `release` script (`pnpm release`) wraps steps 1–3 for the
+common case. Treat manual publishing as a last resort and re-enable
+automation immediately afterwards.
+
+## Post-publish checks
+
+- The npm page shows the expected `dist/` contents and `bin`.
+- `npx @jfitzsimmons2/theme-unify@latest --version` reports the
+  published version.
+- Consuming docs that pin a version are updated.
+# Release
+
+Releases are automated with
 [Changesets](https://github.com/changesets/changesets) and GitHub
 Actions. There is no manual `pnpm publish` step in the normal flow.
 

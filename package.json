@@ -10,6 +10,7 @@
         "generate": "pnpm --filter @theme-unify/playground generate",
         "changeset": "changeset",
         "version": "changeset version",
+        "ci:publish": "changeset publish",
         "release": "pnpm --filter @jfitzsimmons2/theme-unify build && changeset publish",
         "release:dev": "pnpm --filter @jfitzsimmons2/theme-unify build && changeset publish --tag dev",
         "snapshot:dev": "changeset version --snapshot dev"
@@ -23,5 +24,5 @@
             "esbuild"
         ]
     },
-    "packageManager": "pnpm@11.0.0-rc.3+sha512.9b6f50b42edeb873a131232f5951ae2ce5f743fa4bc121047996b386a0982fcb1b0fa7e2c075026320ab3eb399afa7d6e69ec684344e7d689186631c0bbc1b26"
+    "packageManager": "pnpm@11.0.0-rc.5+sha512.c469fb6aa13a99e57aec935cd7b86ff422701f4602ecac2231d3dc20910586ebfb6b50a7b455d0778ec22ae56912d8d8e88e9f9e0a03c0875a6a41783a94a1bd"
 }
