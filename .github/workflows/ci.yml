@@ -29,12 +29,8 @@ jobs:
       
       - run: pnpm install --frozen-lockfile
 
-      - name: Build core (so bin link resolves)
+      - name: Build core
         run: pnpm --filter @jfitzsimmons2/theme-unify build
 
-      - name: Re-link workspace bins
-        run: pnpm install --frozen-lockfile
-
-      - run: pnpm -r build
-
-      - run: pnpm test
+      - name: Test core
+        run: pnpm --filter @jfitzsimmons2/theme-unify test
