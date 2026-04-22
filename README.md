@@ -1,5 +1,9 @@
 # theme-unify
 
+[![npm version](https://img.shields.io/npm/v/@jfitzsimmons2/theme-unify.svg)](https://www.npmjs.com/package/@jfitzsimmons2/theme-unify)
+[![npm downloads](https://img.shields.io/npm/dm/@jfitzsimmons2/theme-unify.svg)](https://www.npmjs.com/package/@jfitzsimmons2/theme-unify)
+[![license](https://img.shields.io/npm/l/@jfitzsimmons2/theme-unify.svg)](./LICENSE)
+
 Compile a single token definition into a **PrimeVue 4 theme preset** and a
 **matching UnoCSS theme config** — one source of truth for colors,
 spacing, typography, and dark mode across both libraries.
@@ -7,6 +11,13 @@ spacing, typography, and dark mode across both libraries.
 The generated PrimeVue preset emits `--p-*` CSS variables; the generated
 UnoCSS theme reads from the same variables. Swap your preset at runtime
 and every utility class follows automatically — no rebuild required.
+
+> **Status:** pre-1.0. Public API is stable enough for production use
+> and changes follow [semver](https://semver.org/) via
+> [Changesets](https://github.com/changesets/changesets) — a per-package
+> `CHANGELOG.md` is generated alongside `packages/core/` on each
+> release. Minor versions may add features; patch versions are
+> fix-only.
 
 ---
 
@@ -40,6 +51,21 @@ pnpm add -D @jfitzsimmons2/theme-unify
 ```
 
 The package ships with a CLI, programmatic API, and TypeScript types.
+
+### Requirements
+
+| Dependency             | Version     | Notes                                                                     |
+| ---------------------- | ----------- | ------------------------------------------------------------------------- |
+| Node.js                | `>= 18.18`  | Uses native ESM + `node:` protocol imports                                |
+| `primevue`             | `^4.0`      | Consumer dep — the generated preset feeds PrimeVue's `theme.preset`       |
+| `@primeuix/themes`     | `^2.0`      | Optional peer — required only when importing the typed entries (`/aura`, `/lara`, `/nora`, `/material`) or any `preset.base` |
+| `unocss`               | `^66`       | Consumer dep — the generated theme & shortcuts plug into your UnoCSS config |
+
+```bash
+# typical consumer install (Vue + PrimeVue + UnoCSS)
+pnpm add primevue @primeuix/themes
+pnpm add -D unocss @jfitzsimmons2/theme-unify
+```
 
 ---
 

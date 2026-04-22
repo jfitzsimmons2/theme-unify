@@ -15,6 +15,9 @@ dist-ssr
 # Generated output
 packages/playground/src/generated/
 
+# Transient README copy created by packages/core prepack (cleaned by postpack)
+packages/core/README.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

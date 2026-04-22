@@ -57,7 +57,9 @@
         "build": "tsup",
         "dev": "tsup --watch",
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "prepack": "node -e \"require('fs').copyFileSync('../../README.md','README.md')\"",
+        "postpack": "node -e \"require('fs').rmSync('README.md',{force:true})\""
     },
     "dependencies": {
         "cac": "^6.7.14",
