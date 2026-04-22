@@ -1,6 +1,6 @@
 {
     "name": "@jfitzsimmons2/theme-unify",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "type": "module",
     "description": "Compile a single token definition into PrimeVue 4 theme presets and UnoCSS theme configs",
     "license": "MIT",
