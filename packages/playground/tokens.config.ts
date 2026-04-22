@@ -63,7 +63,7 @@ export default defineTokens({
                 900: "#7C2D12",
                 950: "#431407",
             },
-            eggplant: {
+            eggplantPurple: {
                 50: "#FAF5FF",
                 100: "#F3E8FF",
                 200: "#E9D5FF",
@@ -102,6 +102,34 @@ export default defineTokens({
                 900: "#362E25",
                 950: "#211C17",
             },
+            purple: {
+                50: '#faf7fa',
+                100: '#e8d7e6',
+                200: '#d7b8d1',
+                300: '#c599bd',
+                400: '#b379a9',
+                500: '#a15a95',
+                600: '#894d7f',
+                700: '#713f68',
+                800: '#593252',
+                900: '#40243c',
+                950: '#2a1728'
+
+            },
+            red: {
+                50: '#fbf4f5',
+                100: '#eac8cd',
+                200: '#d99ca5',
+                300: '#c8707d',
+                400: '#b74556',
+                500: '#a6192e',
+                600: '#8d1527',
+                700: '#741220',
+                800: '#5b0e19',
+                900: '#420a12',
+                950: '#2a070d'
+
+            },
         },
     },
 
@@ -110,7 +138,7 @@ export default defineTokens({
     // `--p-{role}-*`. Edit these (or `preset.overrides.semantic.primary`)
     // to repaint both PrimeVue components and UnoCSS utilities at runtime.
     semantic: {
-        primary: "eggplant",
+        primary: "eggplantPurple",
         secondary: "oatmeal",
         surface: {
             scale: "slate",
@@ -118,7 +146,7 @@ export default defineTokens({
         },
         extra: {
             success: "kale",
-            info: "eggplant",
+            info: "eggplantPurple",
             warn: "carrot",
             danger: "beetroot",
         },
