@@ -73,9 +73,12 @@ implements a two-phase, PR-based release flow:
    [`pnpm/action-setup@v4`](https://github.com/pnpm/action-setup) — the
    pnpm version is read from the `packageManager` field in the root
    [`package.json`](../package.json) — set up Node.js 22 with the npm
-   registry configured, then `pnpm install --frozen-lockfile`.
-2. **Build.** `pnpm run build` (which runs `pnpm -r build`) so each
-   package's `dist/` is ready before publish.
+   registry configured, then `pnpm install --frozen-lockfile`. The
+   workflow then upgrades the npm CLI to the latest version (≥ 11.5.1
+   is required for OIDC trusted publishing — see
+   [Required secrets](#required-secrets)).
+2. **Build.** `pnpm --filter @jfitzsimmons2/theme-unify run build` so
+   the package's `dist/` is ready before publish.
 3. **Changesets action.** `changesets/action@v1` does one of three
    things depending on repo state:
    - **Pending changesets exist.** It opens (or updates) a PR titled
@@ -104,12 +107,28 @@ overlapping pushes don't race.
 
 ## Required secrets
 
+Publishing to npm uses [npm trusted publishing][trusted-pub] (OIDC),
+so there is **no `NPM_TOKEN`** in the workflow. Instead, npm verifies
+a short-lived OIDC token minted by GitHub Actions against the Trusted
+Publisher configured for `@jfitzsimmons2/theme-unify` on npmjs.com.
+
+[trusted-pub]: https://docs.npmjs.com/trusted-publishers
+
+Requirements for trusted publishing to work:
+
+- The job must have `id-token: write` (set in `release.yml`).
+- npm CLI ≥ 11.5.1 must be on `PATH` when `npm publish` runs.
+  `release.yml` runs `npm install -g npm@latest` after `setup-node`
+  to satisfy this on Node 22 runners.
+- A **Trusted Publisher** for `@jfitzsimmons2/theme-unify` must be
+  configured on npmjs.com pointing at this repo's `release.yml`
+  workflow on the `main` branch.
+
 Configure these in **Settings → Secrets and variables → Actions**:
 
 | Secret | Used by | Purpose |
 | --- | --- | --- |
-| `NPM_TOKEN` | `release.yml` | npm automation token with publish rights for `@jfitzsimmons2/theme-unify`. Must be an **Automation** token if 2FA is enabled on the account. |
-| `GITHUB_TOKEN` | `release.yml` | Provided automatically by Actions. The workflow grants it `contents: write` and `pull-requests: write` so the action can push the version PR and create release tags. |
+| `SCOPED_GITHUB_TOKEN` | `release.yml` | Fine-grained PAT (or GitHub App token) with `contents: write` and `pull-requests: write` on this repo. Used by `changesets/action` to push the release branch and open the version PR. The default `GITHUB_TOKEN` works too if **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests** is enabled. |
 
 ## Local dry-run
 
