@@ -6,7 +6,12 @@ import {
     isBuiltinPalette,
 } from "../builtin-palettes.js";
 import { collectEffectiveBuiltins } from "../effective-builtins.js";
-import { canonicalizeSemanticRole, fileHeader, serializeValue } from "./utils.js";
+import {
+    canonicalizeSemanticRole,
+    fileHeader,
+    serializeValue,
+    toKebabCase,
+} from "./utils.js";
 
 /**
  * Where the scale backing a semantic role comes from.
@@ -24,6 +29,12 @@ export type SemanticPaletteSourceKind = "custom" | "builtin" | "inline";
 export interface SemanticPaletteEntry {
     /** Canonical role name (`primary`, `surface`, `success`, `warn`, …). */
     role: string;
+    /**
+     * UnoCSS class fragment for the role (kebab-cased). Equal to `role`
+     * for canonical PrimeVue roles; differs only if a user supplies a
+     * camelCase custom role under `semantic.extra`.
+     */
+    className: string;
     /** Source palette name when the config used a string ref; `null` for inline scales. */
     source: string | null;
     /** Surface dark scheme source palette name (`surface` only). */
@@ -58,6 +69,15 @@ export interface PaletteCatalog {
     optInBuiltins: string[];
     /** Custom palette names that shadow a builtin of the same name. */
     shadowedBuiltins: string[];
+    /**
+     * Source palette name → UnoCSS class fragment (kebab-case). Custom
+     * palettes may be authored in camelCase (e.g. `eggplantPurple`),
+     * but the generated `bg-*` / `text-*` classes use the kebab form
+     * (`bg-eggplant-purple-500`) so they line up with the `--p-*` CSS
+     * variables PrimeVue emits at runtime. Builtin and lowercase
+     * custom names map to themselves.
+     */
+    classNames: Record<string, string>;
     /**
      * Semantic role → backing scale entries, in emit order: `primary`,
      * `surface`, then each `extra` role (canonicalized). Each entry
@@ -115,6 +135,15 @@ export function collectPalettes(resolved: ResolvedTokens): PaletteCatalog {
     const shadowed = Object.keys(custom).filter((n) => isBuiltinPalette(n));
     const optIn = [...effective].filter((n) => !referenced.has(n)).sort();
 
+    const classNames: Record<string, string> = {};
+    for (const name of Object.keys(custom)) {
+        classNames[name] = toKebabCase(name);
+    }
+    for (const name of Object.keys(builtin)) {
+        if (classNames[name]) continue;
+        classNames[name] = toKebabCase(name);
+    }
+
     const semanticEntries: SemanticPaletteEntry[] = [];
     if (sem) {
         if (sem.primary !== undefined) {
@@ -142,6 +171,7 @@ export function collectPalettes(resolved: ResolvedTokens): PaletteCatalog {
         referencedBuiltins: [...referenced].sort(),
         optInBuiltins: optIn,
         shadowedBuiltins: shadowed,
+        classNames,
         semantic: semanticEntries,
     };
 }
@@ -151,15 +181,16 @@ function makeSemanticEntry(
     ref: unknown,
     custom: Record<string, ColorScale>,
 ): SemanticPaletteEntry {
+    const className = toKebabCase(role);
     if (typeof ref === "string") {
         const sourceKind: SemanticPaletteSourceKind = custom[ref]
             ? "custom"
             : isBuiltinPalette(ref)
                 ? "builtin"
                 : "custom";
-        return { role, source: ref, sourceKind };
+        return { role, className, source: ref, sourceKind };
     }
-    return { role, source: null, sourceKind: "inline" };
+    return { role, className, source: null, sourceKind: "inline" };
 }
 
 /**
@@ -172,8 +203,8 @@ function makeSemanticEntry(
  *
  * Emitted exports: `customPalettes`, `builtinPalettes`,
  * `referencedBuiltinPalettes`, `optInBuiltinPalettes`,
- * `shadowedBuiltinPalettes`, `availableBuiltinPaletteNames`,
- * `semanticPalettes`.
+ * `shadowedBuiltinPalettes`, `paletteClassNames`,
+ * `availableBuiltinPaletteNames`, `semanticPalettes`.
  */
 export function generatePalettes(resolved: ResolvedTokens): string {
     const catalog = collectPalettes(resolved);
@@ -197,6 +228,10 @@ export function generatePalettes(resolved: ResolvedTokens): string {
     sections.push("");
     sections.push(
         `export const shadowedBuiltinPalettes = ${serializeValue(catalog.shadowedBuiltins, 0)} as const;`,
+    );
+    sections.push("");
+    sections.push(
+        `export const paletteClassNames = ${serializeValue(catalog.classNames, 0)} as const;`,
     );
     sections.push("");
     sections.push(

@@ -95,6 +95,16 @@ Output (default `uno-theme.ts`) exports named consts:
 - `darkMode` — `"class"` or `"media"`, reflecting `meta.darkModeStrategy`.
   Pass this into `presetUno({ dark: darkMode })` (or equivalent) so the
   `dark:` variant activates via the matching mechanism.
+
+> **Key normalization.** PrimeUix kebab-cases every key when materializing
+> `--p-*` CSS variables, so theme-unify kebab-cases the export keys and
+> the `var()` references it embeds in `uno-theme.ts` to match. A
+> primitive named `eggplantPurple` becomes `bg-eggplant-purple-500`
+> (resolving to `var(--p-eggplant-purple-500)`); the same applies to
+> spacing, radii, shadows, and font-weight keys. Source keys in
+> `tokens.config.ts` and the catalog labels in `palettes.ts` keep the
+> authored casing.
+
 - `colors` — every palette consumers can use as `bg/text/border-{name}-{step}`:
   - User palettes from `primitive.colors` → `var(--p-{name}-{step})`.
   - Builtin palettes referenced by `semantic` → `var(--p-{name}-{step})`
@@ -166,7 +176,7 @@ strings should already include any `dark:` prefix where needed.
 Source: [generators/palettes.ts](../packages/core/src/generators/palettes.ts).
 Exports: `generatePalettes`, `collectPalettes`, type `PaletteCatalog`.
 
-Output (default `palettes.ts`) emits seven `as const` exports describing
+Output (default `palettes.ts`) emits eight `as const` exports describing
 every color scale available to the config:
 
 | Export | Shape | Contents |
@@ -176,8 +186,9 @@ every color scale available to the config:
 | `referencedBuiltinPalettes` | `string[]` | Builtin names actually used by `semantic.primary`, `semantic.surface.{scale,darkScale}`, or `semantic.extra.*` |
 | `optInBuiltinPalettes` | `string[]` | Builtin names opted in via `unocss.includeBuiltinPalettes` (excluding any already referenced or shadowed by user palettes) |
 | `shadowedBuiltinPalettes` | `string[]` | Custom palette names that shadow a builtin of the same name |
+| `paletteClassNames` | `Record<sourceName, kebabName>` | Source palette name → UnoCSS class fragment. CamelCase user palettes (e.g. `eggplantPurple`) are kebab-cased (`eggplant-purple`) to match the `--p-*` CSS variables PrimeVue emits. Builtin and lowercase names map to themselves. |
 | `availableBuiltinPaletteNames` | `string[]` | Full list of builtin names you can reference |
-| `semanticPalettes` | `SemanticPaletteEntry[]` | Each semantic role (`primary`, `surface`, then each canonicalized `extra` role) with its backing scale name and source kind (`custom` / `builtin` / `inline`). `surface` entries also include `darkSource` / `darkSourceKind`. Render swatches via `bg-{role}-{step}` to reflect runtime preset overrides. |
+| `semanticPalettes` | `SemanticPaletteEntry[]` | Each semantic role (`primary`, `surface`, then each canonicalized `extra` role) with its backing scale name, source kind (`custom` / `builtin` / `inline`), and a `className` field (kebab-cased UnoCSS fragment for the role). `surface` entries also include `darkSource` / `darkSourceKind`. Render swatches via `bg-{className}-{step}` to reflect runtime preset overrides. |
 
 Use it to render swatches in a docs/preview UI without hardcoding palette
 names. The CLI's [`colors` subcommand](cli.md#colors-subcommand) prints

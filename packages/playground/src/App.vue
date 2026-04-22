@@ -10,6 +10,7 @@ import Toast from 'primevue/toast'
 import ScrollTop from 'primevue/scrolltop'
 
 import { updatePreset } from '@primeuix/themes'
+import tokensConfig from '../tokens.config'
 
 // --- Dark mode ---
 const isDark = ref(false)
@@ -18,17 +19,23 @@ function toggleDark() {
     document.documentElement.classList.toggle('dark', isDark.value)
 }
 
+// --- Color options sourced from tokens.config primitive colors ---
+function humanizeKey(key: string) {
+    return key
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/^./, (c) => c.toUpperCase())
+}
+const colorOptions = Object.keys(tokensConfig.primitive?.colors ?? {}).map((key) => ({
+    label: humanizeKey(key),
+    value: key,
+}))
+
 // --- Brand switch demo ---
-const brandOptions = [
-    { label: 'Blueberry', value: 'blueberry' },
-    { label: 'Beetroot', value: 'beetroot' },
-    { label: 'Kale', value: 'kale' },
-    { label: 'Carrot', value: 'carrot' },
-    { label: 'Eggplant', value: 'eggplant' },
-    { label: 'Chickpea', value: 'chickpea' },
-    { label: 'Oatmeal', value: 'oatmeal' },
-]
-const activeBrand = ref<string>('blueberry')
+const activeBrand = ref<string>(
+    (typeof tokensConfig.semantic?.primary === 'string' ? tokensConfig.semantic.primary : undefined)
+    ?? colorOptions[0]?.value
+    ?? '',
+)
 function scaleRefs(scale: string) {
     return Object.fromEntries(
         [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950].map((s) => [s, `{${scale}.${s}}`]),
@@ -39,17 +46,8 @@ function applyBrand() {
 }
 
 // --- Surface switch demo ---
-const surfaceOptions = [
-    { label: 'Kale', value: 'kale' },
-    { label: 'Chickpea', value: 'chickpea' },
-    { label: 'Oatmeal', value: 'oatmeal' },
-    { label: 'Blueberry', value: 'blueberry' },
-    { label: 'Beetroot', value: 'beetroot' },
-    { label: 'Eggplant', value: 'eggplant' },
-    { label: 'Carrot', value: 'carrot' },
-]
-const activeSurfaceLight = ref<string>('kale')
-const activeSurfaceDark = ref<string>('chickpea')
+const activeSurfaceLight = ref<string>(colorOptions[0]?.value ?? '')
+const activeSurfaceDark = ref<string>(colorOptions[1]?.value ?? colorOptions[0]?.value ?? '')
 function applySurface() {
     updatePreset({
         semantic: {
@@ -92,15 +90,14 @@ const navItems = ref([
                 </h1>
                 <div class="flex items-center gap-3">
                     <Tag value="PrimeVue 4" severity="info" />
-                    <Select v-model="activeBrand" :options="brandOptions" optionLabel="label" optionValue="value"
+                    <Select v-model="activeBrand" :options="colorOptions" optionLabel="label" optionValue="value"
                         @change="applyBrand" placeholder="Brand" size="small" class="w-36"
                         v-tooltip.bottom="'Live-swap the PrimeVue primary scale — UnoCSS bg-primary-* utilities follow automatically.'" />
-                    <Select v-model="activeSurfaceLight" :options="surfaceOptions" optionLabel="label"
-                        optionValue="value" @change="applySurface" placeholder="Surface" size="small" class="w-36"
+                    <Select v-model="activeSurfaceLight" :options="colorOptions" optionLabel="label" optionValue="value"
+                        @change="applySurface" placeholder="Surface" size="small" class="w-36"
                         v-tooltip.bottom="'Live-swap the light surface scale — repaints page chrome via var(--p-surface-*).'" />
-                    <Select v-model="activeSurfaceDark" :options="surfaceOptions" optionLabel="label"
-                        optionValue="value" @change="applySurface" placeholder="Surface (dark)" size="small"
-                        class="w-36"
+                    <Select v-model="activeSurfaceDark" :options="colorOptions" optionLabel="label" optionValue="value"
+                        @change="applySurface" placeholder="Surface (dark)" size="small" class="w-36"
                         v-tooltip.bottom="'Live-swap the dark surface scale — applies when the .dark class is active.'" />
                     <Button :icon="isDark ? 'i-prime-sun' : 'i-prime-moon'" :label="isDark ? 'Light' : 'Dark'"
                         @click="toggleDark" severity="secondary" size="small" />

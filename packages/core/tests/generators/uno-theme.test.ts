@@ -250,4 +250,49 @@ describe("generateUnoTheme", () => {
             "export const transitionTimingFunction = {} as const;",
         );
     });
+
+    it("kebab-cases camelCase palette keys and their var() refs", () => {
+        // PrimeVue's toVariables kebab-cases every key when materializing
+        // CSS variables, so theme-unify must do the same in its UnoCSS
+        // export keys + `var()` references — otherwise `bg-eggplant-purple-500`
+        // would resolve to an undefined `--p-eggplantPurple-500`.
+        const camelOut = generateUnoTheme(
+            resolveRefs({
+                meta: { name: "M" },
+                primitive: {
+                    colors: {
+                        eggplantPurple: {
+                            50: "#fff", 100: "#fff", 200: "#fff", 300: "#fff",
+                            400: "#fff", 500: "#abcdef", 600: "#fff", 700: "#fff",
+                            800: "#fff", 900: "#fff", 950: "#fff",
+                        },
+                    },
+                },
+            }),
+        );
+        expect(camelOut).toMatch(/['"]?eggplant-purple['"]?:\s*\{/);
+        expect(camelOut).toContain("var(--p-eggplant-purple-500)");
+        // The literal camelCase form must NOT appear as either a key or var name
+        expect(camelOut).not.toMatch(/eggplantPurple:\s*\{/);
+        expect(camelOut).not.toContain("var(--p-eggplantPurple-500)");
+    });
+
+    it("kebab-cases camelCase spacing / radii / shadow / fontWeight keys", () => {
+        const out = generateUnoTheme(
+            resolveRefs({
+                meta: { name: "M" },
+                primitive: {
+                    colors: {},
+                    spacing: { extraLarge: "3rem" },
+                    radii: { roundedFull: "9999px" },
+                    shadows: { cardShadow: "0 1px 2px #0001" },
+                    fontWeight: { extraBold: "800" },
+                },
+            }),
+        );
+        expect(out).toContain("var(--p-spacing-extra-large)");
+        expect(out).toContain("var(--p-border-radius-rounded-full)");
+        expect(out).toContain("var(--p-shadow-card-shadow)");
+        expect(out).toContain("var(--p-font-weight-extra-bold)");
+    });
 });

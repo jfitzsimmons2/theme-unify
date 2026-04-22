@@ -1,6 +1,11 @@
 import type { ResolvedTokens } from "../types.js";
 import { COLOR_STEPS } from "../types.js";
-import { fileHeader, serializeValue, canonicalizeSemanticRole } from "./utils.js";
+import {
+    fileHeader,
+    serializeValue,
+    canonicalizeSemanticRole,
+    toKebabCase,
+} from "./utils.js";
 import { collectEffectiveBuiltins } from "../effective-builtins.js";
 
 /**
@@ -36,20 +41,30 @@ export function generateUnoTheme(resolved: ResolvedTokens): string {
     sections.push("");
 
     // ----- colors -----
+    // Export keys and the embedded `var(--p-{name}-{step})` references
+    // are kebab-cased so they line up with the CSS variables PrimeUix's
+    // `toVariables` actually emits (it kebab-cases every key as it walks
+    // the preset). User palettes may be authored in camelCase
+    // (e.g. `eggplantPurple`); the resulting UnoCSS class fragment is
+    // `bg-eggplant-purple-500`.
     const colors: Record<string, Record<string, string>> = {};
 
-    // Every user palette → bg-{name}-{step} resolves to var(--p-{name}-{step})
+    // Every user palette → bg-{kebab(name)}-{step} resolves to
+    // var(--p-{kebab(name)}-{step})
     for (const name of Object.keys(resolved.primitive.colors)) {
-        colors[name] = scaleVarObject(name);
+        const key = toKebabCase(name);
+        colors[key] = scaleVarObject(key);
     }
 
     // Builtins that are referenced via semantic OR opted into via
     // `unocss.includeBuiltinPalettes`. Both flow through the preset as
     // `--p-{name}-{step}` CSS variables, so we reference them the same
-    // way as user palettes.
+    // way as user palettes. Builtin names are already lowercase, but
+    // run them through the same kebab helper for consistency.
     for (const name of collectEffectiveBuiltins(resolved)) {
-        if (colors[name]) continue;
-        colors[name] = scaleVarObject(name);
+        const key = toKebabCase(name);
+        if (colors[key]) continue;
+        colors[key] = scaleVarObject(key);
     }
 
     // Semantic roles
@@ -58,7 +73,7 @@ export function generateUnoTheme(resolved: ResolvedTokens): string {
     }
     if (resolved.semantic?.extra) {
         for (const role of Object.keys(resolved.semantic.extra)) {
-            const canonical = canonicalizeSemanticRole(role);
+            const canonical = toKebabCase(canonicalizeSemanticRole(role));
             colors[canonical] = scaleVarObject(canonical);
         }
     }
@@ -75,7 +90,8 @@ export function generateUnoTheme(resolved: ResolvedTokens): string {
     const spacing: Record<string, string> = {};
     if (resolved.primitive.spacing) {
         for (const key of Object.keys(resolved.primitive.spacing)) {
-            spacing[key] = `var(--p-spacing-${key})`;
+            const k = toKebabCase(key);
+            spacing[k] = `var(--p-spacing-${k})`;
         }
     }
     sections.push(`export const spacing = ${serializeValue(spacing, 0)} as const;`);
@@ -85,7 +101,8 @@ export function generateUnoTheme(resolved: ResolvedTokens): string {
     const borderRadius: Record<string, string> = {};
     if (resolved.primitive.radii) {
         for (const key of Object.keys(resolved.primitive.radii)) {
-            borderRadius[key] = `var(--p-border-radius-${key})`;
+            const k = toKebabCase(key);
+            borderRadius[k] = `var(--p-border-radius-${k})`;
         }
     }
     sections.push(
@@ -97,7 +114,8 @@ export function generateUnoTheme(resolved: ResolvedTokens): string {
     const boxShadow: Record<string, string> = {};
     if (resolved.primitive.shadows) {
         for (const key of Object.keys(resolved.primitive.shadows)) {
-            boxShadow[key] = `var(--p-shadow-${key})`;
+            const k = toKebabCase(key);
+            boxShadow[k] = `var(--p-shadow-${k})`;
         }
     }
     sections.push(
@@ -137,7 +155,8 @@ export function generateUnoTheme(resolved: ResolvedTokens): string {
     const fontWeight: Record<string, string> = {};
     if (resolved.primitive.fontWeight) {
         for (const key of Object.keys(resolved.primitive.fontWeight)) {
-            fontWeight[key] = `var(--p-font-weight-${key})`;
+            const k = toKebabCase(key);
+            fontWeight[k] = `var(--p-font-weight-${k})`;
         }
     }
     sections.push(

@@ -118,6 +118,24 @@ export function canonicalizeSemanticRole(role: string): string {
     return SEMANTIC_ROLE_ALIAS_MAP[role] ?? role;
 }
 
+/**
+ * Convert a snake_case, camelCase, or PascalCase identifier to
+ * kebab-case. Mirrors the conversion PrimeUix's `toVariables` applies
+ * when materializing `--p-*` CSS variables, so the names theme-unify
+ * embeds in `var()` references and UnoCSS export keys line up with the
+ * variables PrimeVue actually emits at runtime.
+ *
+ * Example: `eggplantPurple` → `eggplant-purple`, `brand_color` →
+ * `brand-color`. Already-lowercase strings (e.g. `slate`, `purple`)
+ * pass through unchanged.
+ */
+export function toKebabCase(str: string): string {
+    return str
+        .replace(/_/g, "-")
+        .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+        .toLowerCase();
+}
+
 import type { ColorScale, ColorStep } from "../types.js";
 import { COLOR_STEPS } from "../types.js";
 

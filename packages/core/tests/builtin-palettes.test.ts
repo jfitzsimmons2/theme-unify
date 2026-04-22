@@ -173,15 +173,16 @@ describe("collectPalettes (catalog)", () => {
         const { collectPalettes } = await import("../src/generators/palettes.js");
         const catalog = collectPalettes(resolveRefs(tokensWithBuiltin()));
         expect(catalog.semantic).toEqual([
-            { role: "primary", source: "purple", sourceKind: "builtin" },
+            { role: "primary", className: "primary", source: "purple", sourceKind: "builtin" },
             {
                 role: "surface",
+                className: "surface",
                 source: "oatmeal",
                 sourceKind: "custom",
                 darkSource: "slate",
                 darkSourceKind: "builtin",
             },
-            { role: "success", source: "emerald", sourceKind: "builtin" },
+            { role: "success", className: "success", source: "emerald", sourceKind: "builtin" },
         ]);
     });
 

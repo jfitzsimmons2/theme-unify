@@ -68,6 +68,17 @@ type ColorStep = 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950;
 type ColorScale = Record<ColorStep, string>;
 ```
 
+> **Key casing.** Source keys may be camelCase, snake_case, or
+> kebab-case — they survive verbatim into PrimeVue's preset object so
+> refs like `{ ref: "colors.eggplantPurple.500" }` keep working. The
+> generated **UnoCSS** class fragment, however, is always kebab-cased to
+> match the `--p-*` CSS variables PrimeUix emits at runtime: a
+> `primitive.colors.eggplantPurple` palette is consumed via
+> `bg-eggplant-purple-500`. The same applies to `spacing`, `radii`,
+> `shadows`, and `fontWeight` keys. The `palettes.ts` catalog exposes
+> a `paletteClassNames` map (source name → kebab fragment) so consumers
+> don't need to re-implement the rule.
+
 ## `semantic`
 
 The "design intent" layer. Each role is a `SemanticScaleRef`:
